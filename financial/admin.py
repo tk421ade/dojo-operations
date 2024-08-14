@@ -14,7 +14,12 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name',)
+    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+
 
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Sale, SalesAdmin)
+admin.site.register(Expense, ExpenseAdmin)

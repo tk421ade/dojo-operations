@@ -43,6 +43,7 @@ class Sale(models.Model):
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
     event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
+    date = models.DateField()
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date_from = models.DateField(null=True, blank=True)
     date_to = models.DateField(null=True, blank=True)
@@ -72,3 +73,15 @@ class Sale(models.Model):
             return f"[{self.id}] {self.student} {self.paid}/{self.cost} {self.category__name} "
         else:
             return f"[{self.id}] {self.student} {self.paid}/{self.cost}"
+
+
+class Expense(models.Model):
+    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True, help_text='Optional, if related with an event.')
+    name = models.CharField(max_length=200)
+    date = models.DateField()
+    cost = MoneyField(max_digits=10, decimal_places=2, default_currency='AUD')
+    notes = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(default=datetime.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)

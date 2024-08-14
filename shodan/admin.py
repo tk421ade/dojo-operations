@@ -8,18 +8,24 @@ class StudentAdmin(admin.ModelAdmin):
     list_display = ('id', 'dojo__name', 'name', 'status', 'kyu', 'dan')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_display_links = ('id', 'name')
+    list_filter = ('status',)
+    search_fields = ('name',)
 
 class EventAdmin(admin.ModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    list_filter = ('date',)
 
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    list_filter = ('date',)
 
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student__name','session__name',)
+    list_display = ('id', 'date', 'student__name','session__name', 'duration', 'points')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    search_fields = ('student__name', 'session__name')
+    list_filter = ('date',)
 
 
 # Admin-editable models
