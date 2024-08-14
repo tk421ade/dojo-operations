@@ -22,3 +22,8 @@ clean:
 recreate: clean
 	python -m venv venv
 	./venv/bin/pip3 install -r requirements.txt
+
+reset-database: database_reset
+	find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+	find . -path "*/migrations/*.pyc"  -delete
+	./venv/bin/pip3 install --upgrade --force-reinstall  Django==5.1

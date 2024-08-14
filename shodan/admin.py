@@ -1,22 +1,20 @@
 from django.contrib import admin
+from django.forms import TimeField
+
 from .models import *
 
 
-
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'dojo__name', 'name', 'status__name')
+    list_display = ('id', 'dojo__name', 'name', 'status', 'kyu', 'dan')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_display_links = ('id', 'name')
-
-
-
 
 class EventAdmin(admin.ModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class SessionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name',)
+    list_display = ('id', 'name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class AttendanceAdmin(admin.ModelAdmin):
