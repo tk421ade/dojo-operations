@@ -25,7 +25,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 class ClassesAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'address__name', 'time_from', 'time_to')
+    list_display = ('id', 'name', 'address__name', 'interval__name', 'time_from', 'time_to')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 admin.site.register(Dojo, DojoAdmin)
