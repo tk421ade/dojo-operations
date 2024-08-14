@@ -15,3 +15,10 @@ database_reset:
 
 freeze:
 	./venv/bin/pip3 freeze > requirements.txt
+
+clean:
+	rm -rf venv
+
+recreate: clean
+	python -m venv venv
+	./venv/bin/pip3 install -r requirements.txt
