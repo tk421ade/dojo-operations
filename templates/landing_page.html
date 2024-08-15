@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Landing Page</title>
+</head>
+<body>
+<h1>Karate Event Finder</h1>
+
+<p>Please add your email if you are a karate student: </p>
+
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <input type="email" name="email" placeholder="Email Address">
+    <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>

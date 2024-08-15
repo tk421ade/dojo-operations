@@ -22,7 +22,7 @@ class SessionAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
-    form = AdminSessionForm
+    #form = AdminSessionForm
 
 class AttendanceAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'date', 'student__name','session__name', 'duration', 'points')

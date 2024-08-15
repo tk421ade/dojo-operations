@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Karate Session Finder</title>
+    <style>
+        #arrow-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 80px;
+            background: black;
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
+            transform: rotate(0deg);
+            transition: transform 0.5s;
+        }
+        #arrow {
+             transform: rotate(0deg);
+             transition: transform 0.5s;
+         }
+    </style>
+</head>
+<body>
+<h1>Karate Session Finder</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
+<h2>{{ session.name }}</h2>
+<p>
+    {{ session.event.address.street }}<br>
+    {{ session.event.address.state }}
+</p>
+
+<div id="countdown"></div>
+
+<script>
+    const countdownDate = new Date("{{ countdown_date }}"); // Pass the date from Django
+    const countdownElement = document.getElementById("countdown");
+
+    function updateCountdown() {
+        const now = new Date();
+        const distance = countdownDate - now;
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownElement.innerHTML = `
+      ${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds
+    `;
+
+        if (distance < 0) {
+            countdownElement.innerHTML = "Countdown finished!";
+        }
+    }
+
+    setInterval(updateCountdown, 1000); // Update every second
+</script>
+
+    <p id="distance"></p>
+
+<script>
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+    }
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const earthRadius = 6371; // km
+        const dLat = deg2rad(lat2 - lat1);
+        const dLon = deg2rad(lon2 - lon1);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) *
+            Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = earthRadius * c;
+        return distance;
+    }
+
+
+</script>
+
+
+<canvas id="heading-indicator" width="200" height="200"></canvas>
+
+
+<script>
+    function drawHeadingIndicator(canvas, userLocation, targetLocation) {
+        // Calculate bearing between user and target locations
+        const bearing = getBearing(userLocation, targetLocation);
+
+        // Get canvas context
+        const ctx = canvas.getContext('2d');
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw compass labels (N, S, E, W)
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000000';
+        ctx.fillText('N', canvas.width / 2, 20);
+        ctx.fillText('S', canvas.width / 2, canvas.height - 20);
+        ctx.fillText('E', canvas.width - 20, canvas.height / 2);
+        ctx.fillText('W', 20, canvas.height / 2);
+
+        // Draw heading indicator (arrow)
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(bearing * Math.PI / 180);
+        ctx.beginPath();
+        ctx.moveTo(0, -50); // arrow tip
+        ctx.lineTo(-20, 20); // arrow tail
+        ctx.lineTo(20, 20); // arrow tail
+        ctx.closePath();
+        ctx.fillStyle = '#FF0000';
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Calculate bearing between two coordinates
+    function getBearing(from, to) {
+        const lat1 = from.lat * Math.PI / 180;
+        const lon1 = from.lng * Math.PI / 180;
+        const lat2 = to.lat * Math.PI / 180;
+        const lon2 = to.lng * Math.PI / 180;
+
+        const dLon = lon2 - lon1;
+        const y = Math.sin(dLon) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) -
+            Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+
+        const bearing = Math.atan2(y, x) * 180 / Math.PI;
+        return bearing;
+    }
+
+</script>
+
+<script>
+    // print direction and distance
+    navigator.geolocation.getCurrentPosition(position => {
+        // distance
+        const currentLat = position.coords.latitude;
+        const currentLng = position.coords.longitude;
+        const targetLat = {{address.latitude}}; // Target latitude
+        const targetLng = {{address.longitude}}; // Target longitude
+        console.log(`Latitude: ${currentLat}, Longitude: ${targetLng}`);
+        const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
+        document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} km`;
+
+        // direction
+        const canvas = document.getElementById('heading-indicator');
+        const userLocation = { lat:position.coords.latitude, lng: position.coords.longitude };
+        const targetLocation = { lat: {{address.latitude}}, lng: {{address.longitude}} };
+        drawHeadingIndicator(canvas, userLocation, targetLocation);
+    });
+</script>
+
+</body>
+</html>
