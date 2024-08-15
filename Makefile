@@ -1,5 +1,16 @@
 
 
+clean:
+	rm -rf venv
+	find . -name '*.pyc ' -delete
+
+prepare:clean
+	set -ex
+	virtualenv venv -p /usr/bin/python3
+	venv/bin/pip3 install -r requirements.txt
+	#venv/bin/pip install .
+
+
 migrations:
 	./venv/bin/python3 manage.py makemigrations shodan
 	./venv/bin/python3 manage.py makemigrations financial
@@ -15,9 +26,6 @@ database_reset:
 
 freeze:
 	./venv/bin/pip3 freeze > requirements.txt
-
-clean:
-	rm -rf venv
 
 recreate: clean
 	python -m venv venv
