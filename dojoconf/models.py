@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
-from enum import Enum
+
+from django.contrib.auth.models import User
+from timezone_field import TimeZoneField
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -9,6 +11,8 @@ from django.db import models
 class Dojo(models.Model):
     name = models.CharField(max_length=200)
     email = models.EmailField(max_length=200)
+    users = models.ManyToManyField(User, related_name='dojos')
+    timezone =  TimeZoneField()
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

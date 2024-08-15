@@ -50,6 +50,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'shodan.middleware.TimezoneMiddleware',
+    'shodan.middleware.DojoPermissionsMiddleware',
 ]
 
 ROOT_URLCONF = 'shodan.urls'

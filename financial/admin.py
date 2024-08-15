@@ -1,20 +1,22 @@
 from django.contrib import admin
+
+from dojoconf.admin import DojoFkFilterModelAdmin
 from .models import *
 
 # Register your models here.
-class SubscriptionAdmin(admin.ModelAdmin):
+class SubscriptionAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
-class SalesAdmin(admin.ModelAdmin):
+class SalesAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'subscription__name','event__name', 'category__name', 'cost', 'paid')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
-class ExpenseAdmin(admin.ModelAdmin):
+class ExpenseAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
