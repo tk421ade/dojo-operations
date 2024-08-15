@@ -45,4 +45,7 @@ create_secret_key:
 update:
 	git pull
 
-update_project: update prepare
+restart_gunicorn:
+	systemctl restart gunicorn.service
+
+update_project: update prepare restart_gunicorn
