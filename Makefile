@@ -35,3 +35,9 @@ reset-database: database_reset
 	find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
 	find . -path "*/migrations/*.pyc"  -delete
 	./venv/bin/pip3 install --upgrade --force-reinstall  Django==5.1
+
+collectstatic:
+	./venv/bin/python3 manage.py collectstatic
+
+create_secret_key:
+	./venv/bin/python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'

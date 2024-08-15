@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,10 +20,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)e3^$quf$tlu27go5thx06_r-9!8v@=9y-_d%hhpn743snq!&o'
+DJANGO_SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if DJANGO_SECRET_KEY:
+    SECRET_KEY = DJANGO_SECRET_KEY
+else:
+    SECRET_KEY = 'django-insecure-)e3^$quf$tlu27go5thx06_r-9!8v@=9y-_d%hhpn743snq!&o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DJANGO_DEBUG = os.environ.get('DJANGO_DEBUG')
+if DJANGO_DEBUG:
+    DEBUG = True
+else:
+    DEBUG = False
+
 
 ALLOWED_HOSTS = ['*']
 
