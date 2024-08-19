@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 from dateutil.relativedelta import relativedelta
 from django.contrib import admin, messages
@@ -22,10 +23,22 @@ class StudentAdmin(DojoFkFilterModelAdmin):
 
 class SessionAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/shodan/session/change_list.html'
-    list_display = ('id', 'name')
+    list_display = ('id', 'date', 'name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
     #form = AdminSessionForm
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.order_by('date')
+
+    def changelist_view(self, request, extra_context=None):
+        qs = self.get_queryset(request)
+        future_qs = qs.filter(date__gte=date.today())
+        past_qs = qs.filter(date__lt=date.today())
+        combined_qs = list(future_qs) + list(past_qs)
+        self.queryset = combined_qs
+        return super().changelist_view(request, extra_context)
 
     def get_urls(self):
         urls = super().get_urls()
