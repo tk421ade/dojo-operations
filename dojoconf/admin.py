@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
 from django.forms import TimeField
 
-from dojoconf.models import Dojo, Interval, Address, Classes
+from dojoconf.models import Dojo, Interval, Address, Classes, Event
+
 
 class DojoFkFilterModelAdmin(admin.ModelAdmin):
 
@@ -103,6 +104,12 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name', 'address__name', 'interval__name', 'time_from', 'time_to')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
+class EventAdmin(DojoFkFilterModelAdmin):
+    list_display = ('id', 'name',)
+readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+list_filter = ('date',)
+
+admin.site.register(Event, EventAdmin)
 admin.site.register(Dojo, DojoAdmin)
 admin.site.register(Interval, IntervalAdmin)
 admin.site.register(Address, AddressAdmin)

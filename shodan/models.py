@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from dojoconf.models import Dojo, Interval, Address, Classes
+from dojoconf.models import Dojo, Interval, Address, Classes, Event
 
 
 class Student(models.Model):
@@ -20,41 +20,6 @@ class Student(models.Model):
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"[{self.id}] {self.name}"
-
-
-class Event(models.Model):
-    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE)
-    name = models.CharField(max_length=200, help_text='i.e "Adults"')
-    date = models.DateField()
-    time_from = models.TimeField()
-    time_to = models.TimeField()
-    duration = models.DurationField(null=True, blank=True, help_text='It will be calculated automatically if empty')
-    notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
-    updated_at = models.DateTimeField(null=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-
-
-    def get_duration(self):
-        if self.time_to and self.time_from:
-            return timedelta(hours=self.time_to.hour - self.time_from.hour, minutes=self.time_to.minute - self.time_from.minute)
-
-
-    def get_minutes(self):
-        time_diff = self.get_duration()
-        if time_diff:
-            return time_diff.total_seconds() / 60
-
-    def save(self, *args, **kwargs):
-
-        if not self.duration:
-            self.duration = self.get_duration()
-
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"[{self.id}] {self.name}"

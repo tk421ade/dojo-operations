@@ -49,3 +49,24 @@ restart_gunicorn:
 	systemctl restart gunicorn.service
 
 update_project: update prepare restart_gunicorn
+
+clearsessions:
+	./venv/bin/python manage.py clearsessions
+
+create_fixtures:
+	# auth
+	./venv/bin/python manage.py dumpdata auth.group > fixtures/auth_groups_data.json
+	./venv/bin/python manage.py dumpdata auth.user > fixtures/auth_user_test_data.json
+
+	# dojo conf
+	./venv/bin/python manage.py dumpdata dojoconf.dojo     >  fixtures/dojoconf_dojo_test_data.json
+	./venv/bin/python manage.py dumpdata dojoconf.interval >> fixtures/dojoconf_dojo_test_data.json
+	./venv/bin/python manage.py dumpdata dojoconf.address  >> fixtures/dojoconf_dojo_test_data.json
+	./venv/bin/python manage.py dumpdata dojoconf.classes  >> fixtures/dojoconf_dojo_test_data.json
+
+load_prod_fixtures:
+	./venv/bin/python manage.py loaddata fixtures/auth_groups_data.json
+
+load_dev_fixtures: load_prod_fixtures
+	./venv/bin/python manage.py loaddata fixtures/auth_user_test_data.json
+	./venv/bin/python manage.py loaddata fixtures/dojoconf_dojo_test_data.json

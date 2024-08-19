@@ -13,10 +13,6 @@ class StudentAdmin(DojoFkFilterModelAdmin):
     list_filter = ('status',)
     search_fields = ('name',)
 
-class EventAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
-    list_filter = ('date',)
 
 class SessionAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name')
@@ -34,7 +30,6 @@ class AttendanceAdmin(DojoFkFilterModelAdmin):
 # Admin-editable models
 
 admin.site.register(Student, StudentAdmin)
-admin.site.register(Event, EventAdmin)
 admin.site.register(Session, SessionAdmin)
 admin.site.register(Attendance, AttendanceAdmin)
 
