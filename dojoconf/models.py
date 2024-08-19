@@ -98,18 +98,11 @@ class Classes(models.Model):
 class Event(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
-    name = models.CharField(max_length=200, help_text='i.e "Adults"')
+    name = models.CharField(max_length=200, help_text='i.e "Seminar, Grading, Competition, etc."')
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-
-        if not self.duration:
-            self.duration = self.get_duration()
-
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"[{self.id}] {self.name}"

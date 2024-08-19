@@ -19,7 +19,7 @@ migrations:
 
 
 create_test_admin_user:
-	./venv/bin/python3 manage.py createsuperuser --username username --email email@example.com
+	./venv/bin/python3 manage.py createsuperuser --username admin --email admin@example.com
 
 database_reset:
 	./venv/bin/python3 manage.py flush
@@ -56,13 +56,10 @@ clearsessions:
 create_fixtures:
 	# auth
 	./venv/bin/python manage.py dumpdata auth.group > fixtures/auth_groups_data.json
-	./venv/bin/python manage.py dumpdata auth.user > fixtures/auth_user_test_data.json
+	./venv/bin/python manage.py dumpdata auth > fixtures/auth_test_data.json
 
 	# dojo conf
-	./venv/bin/python manage.py dumpdata dojoconf.dojo     >  fixtures/dojoconf_dojo_test_data.json
-	./venv/bin/python manage.py dumpdata dojoconf.interval >> fixtures/dojoconf_dojo_test_data.json
-	./venv/bin/python manage.py dumpdata dojoconf.address  >> fixtures/dojoconf_dojo_test_data.json
-	./venv/bin/python manage.py dumpdata dojoconf.classes  >> fixtures/dojoconf_dojo_test_data.json
+	./venv/bin/python manage.py dumpdata dojoconf     >  fixtures/dojoconf_test_data.json
 
 load_prod_fixtures:
 	./venv/bin/python manage.py loaddata fixtures/auth_groups_data.json

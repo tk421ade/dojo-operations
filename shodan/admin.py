@@ -33,6 +33,3 @@ admin.site.register(Student, StudentAdmin)
 admin.site.register(Session, SessionAdmin)
 admin.site.register(Attendance, AttendanceAdmin)
 
-
-# Restricted models
-#admin.site.register(StudentStatus, StudentStatusAdmin)

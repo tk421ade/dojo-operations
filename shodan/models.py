@@ -75,6 +75,20 @@ class Session(models.Model):
             raise ValidationError(
                 {'classes': 'You need to define a classes or a event.',
                  'event': 'You need to define a classes or a event.'})
+        if self.classes and self.event:
+            raise ValidationError(
+                {'classes': 'You need to define a classes or a event. You can\'t choose both.',
+                 'event': 'You need to define a classes or a event. You can\'t choose both.'})
+        if self.event and not (self.time_from or self.time_to or self.duration):
+            errors = {}
+            if not self.time_from:
+                errors['time_from'] = 'You must define a time from.'
+            if not self.time_to:
+                errors['time_to'] = 'You must define a time to.'
+            if not self.duration:
+                errors['duration'] = 'You must define duration.'
+            raise ValidationError(errors)
+
 
     def __str__(self):
         return f"[{self.id}] {self.name}"

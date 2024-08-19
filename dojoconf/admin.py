@@ -106,8 +106,7 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
 
 class EventAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
-readonly_fields = ('created_at', 'updated_at', 'deleted_at')
-list_filter = ('date',)
+    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(Dojo, DojoAdmin)

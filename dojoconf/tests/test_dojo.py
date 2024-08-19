@@ -11,7 +11,8 @@ from dojoconf.models import Dojo
 from dojoconf.tests.utils import print_form_errors_from_response
 
 
-class AdminTest(TestCase):
+class DojoTest(TestCase):
+
     fixtures = ['fixtures/auth_groups_data.json']
 
     def setUp(self):
