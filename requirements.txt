@@ -10,3 +10,4 @@ psycopg2-binary
 django-timezone-field
 pytz
 gunicorn
+python-dateutil
