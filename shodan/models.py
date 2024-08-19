@@ -17,6 +17,8 @@ class Student(models.Model):
     email = models.EmailField(max_length=200)
     kyu = models.IntegerField(null=True, blank=True)
     dan = models.IntegerField(null=True, blank=True)
+    hours = models.IntegerField(blank=True, default=0, help_text='Total student training time (in minutes).')
+    points = models.IntegerField(blank=True, default=0)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -70,6 +72,7 @@ class Session(models.Model):
 
         super().save(*args, **kwargs)
 
+
     def clean(self):
         if not self.classes and not self.event:
             raise ValidationError(
@@ -91,7 +94,7 @@ class Session(models.Model):
 
 
     def __str__(self):
-        return f"[{self.id}] {self.name}"
+        return f"[{self.id}] {self.name} {self.date} {self.time_to}"
 
 class Attendance(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
@@ -111,7 +114,13 @@ class Attendance(models.Model):
         if not self.date:
             self.date = self.session.date
 
+        if self.duration and self.pk is None:
+            self.student.hours += self.duration.total_seconds() / 60
+            self.student.save()
+
         super().save(*args, **kwargs)
+
+
 
     def __str__(self):
         return f"[{self.id}] {self.student.name} for {self.session.name}"
