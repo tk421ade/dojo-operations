@@ -64,7 +64,7 @@ class Session(models.Model):
             if self.event:
                 self.name = f'Event {self.event.name}'
             elif self.classes:
-                self.name = f'{self.classes.name } class at {self.date} from {self.time_from} to {self.time_to} ({self.get_minutes()} minutes)'
+                self.name = f'{self.classes.name }'
             else:
                 self.name = f'Session at {self.date}'
 

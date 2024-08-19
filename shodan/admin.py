@@ -23,7 +23,7 @@ class StudentAdmin(DojoFkFilterModelAdmin):
 
 class SessionAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/shodan/session/change_list.html'
-    list_display = ('id', 'date', 'name')
+    list_display = ('id', 'name', 'date', 'time_from', 'time_to', 'duration' )
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
     #form = AdminSessionForm

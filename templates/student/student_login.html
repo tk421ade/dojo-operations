@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content_header %}
+    <h1 class="text-3xl">Karate Dojo Management</h1>
+{% endblock %}
+
+{% block content %}
+    <p>Please gives us your email: </p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="email" name="email" placeholder="Email Address">
+        <button type="submit">Submit</button>
+    </form>
+    {% comment %}<p>If you are new student, please click here. </p>{% endcomment %}
+{% endblock %}
+

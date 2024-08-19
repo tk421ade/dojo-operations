@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content_header %}
+    <h1 class="text-3xl">Registration Completed!</h1>
+{% endblock %}
+
+
+{% block content %}
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <p>OSU! Completed. Enjoy your karate session!</p>
+{% endblock %}

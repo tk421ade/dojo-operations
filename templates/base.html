@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dojo Administration</title>
+    <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+    {% block style %}{% endblock %}
+    {% block js %}{% endblock %}
+</head>
+<body>
+<header>
+<main>
+    <header>{% block content_header %}{% endblock %}</header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer></footer>
+</main>
+</body>
+</html>
