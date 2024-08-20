@@ -111,18 +111,18 @@
                     document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
                 }, (error) => {
                     if (error.code === 1) {
-                        document.getElementById("distance").innerText = ' - error: user denied access to location.'
+                        document.getElementById("distance").innerText = ' - error: user denied access to location'
                     } else if (error.code === 2) {
-                        document.getElementById("distance").innerText = ' - error: unable to determine location.'
+                        document.getElementById("distance").innerText = ' - error: unable to determine location'
                     } else if (error.code === 3) {
-                        document.getElementById("distance").innerText = ' - error: location retrieval timed out.'
+                        document.getElementById("distance").innerText = ' - error: location retrieval timed out'
                     } else {
                         document.getElementById("distance").innerText = ' - unknown error: ' + error.message
                     }
                     console.error(error);
                 }, {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 20000,
                     maximumAge: 0
                 });
         });
