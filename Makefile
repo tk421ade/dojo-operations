@@ -65,5 +65,5 @@ load_prod_fixtures:
 	./venv/bin/python manage.py loaddata fixtures/auth_groups_data.json
 
 load_dev_fixtures: load_prod_fixtures
-	./venv/bin/python manage.py loaddata fixtures/auth_user_test_data.json
-	./venv/bin/python manage.py loaddata fixtures/dojoconf_dojo_test_data.json
+	./venv/bin/python manage.py loaddata fixtures/auth_test_data.json
+	./venv/bin/python manage.py loaddata fixtures/dojoconf_test_data.json

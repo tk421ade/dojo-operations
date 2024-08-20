@@ -2,47 +2,16 @@
 
 {% block content_header %}
     <h1 class="text-3xl">Welcome {{ student.name }}</h1>
+
 {% endblock %}
 
 {% block style %}
-    <style>
-        #arrow-container {
-            position: relative;
-            width: 100px;
-            height: 100px;
-        }
-
-        .arrow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 80px;
-            background: black;
-            clip-path: polygon(0 0, 100% 50%, 0 100%);
-            transform: rotate(0deg);
-            transition: transform 0.5s;
-        }
-        #arrow {
-            transform: rotate(0deg);
-            transition: transform 0.5s;
-        }
-        @media (prefers-color-scheme: dark) {
-            .compass-labels {
-                color: #FFFFFF; /* White text for dark mode */
-            }
-        }
-
-        @media (prefers-color-scheme: light) {
-            .compass-labels {
-                color: #000000; /* Black text for light mode */
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 {% endblock %}
 
 {% block js %}
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
     <script>
         var isCloseInTime = false;
         var isCloseInDistance = false;
@@ -123,80 +92,15 @@
 
     </script>
     <script>
-        function getTextColor() {
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return '#FFFFFF'; // White text for dark mode
-            } else {
-                return '#000000'; // Black text for light mode
-            }
-        }
-        function drawHeadingIndicator(canvas, userLocation, targetLocation) {
-            // Calculate bearing between user and target locations
-            const bearing = getBearing(userLocation, targetLocation);
-
-            // Get canvas context
-            const ctx = canvas.getContext('2d');
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw compass labels (N, S, E, W)
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            //ctx.fillStyle = '#000000';
-            ctx.fillStyle = getTextColor(); // Call the function to get the text color
-            canvas.classList.add('compass-labels');
-            ctx.fillText('N', canvas.width / 2, 20);
-            ctx.fillText('S', canvas.width / 2, canvas.height - 20);
-            ctx.fillText('E', canvas.width - 20, canvas.height / 2);
-            ctx.fillText('W', 20, canvas.height / 2);
-
-            // Draw heading indicator (arrow)
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(bearing * Math.PI / 180);
-            ctx.beginPath();
-            ctx.moveTo(0, -50); // arrow tip
-            ctx.lineTo(-20, 20); // arrow tail
-            ctx.lineTo(20, 20); // arrow tail
-            ctx.closePath();
-            ctx.fillStyle = '#FF0000';
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // Calculate bearing between two coordinates
-        function getBearing(from, to) {
-            const lat1 = from.lat * Math.PI / 180;
-            const lon1 = from.lng * Math.PI / 180;
-            const lat2 = to.lat * Math.PI / 180;
-            const lon2 = to.lng * Math.PI / 180;
-
-            const dLon = lon2 - lon1;
-            const y = Math.sin(dLon) * Math.cos(lat2);
-            const x = Math.cos(lat1) * Math.sin(lat2) -
-                Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-
-            const bearing = Math.atan2(y, x) * 180 / Math.PI;
-            return bearing;
-        }
-
-    </script>
-    <script>
         // print direction and distance
         document.addEventListener('DOMContentLoaded', function() {
-
-            let locationInterval = null;
-
-            function updateCoordinates () {
-                navigator.geolocation.getCurrentPosition((position) => {
+                navigator.geolocation.watchPosition((position) => {
                     // distance
                     const currentLat = position.coords.latitude;
                     const currentLng = position.coords.longitude;
                     const targetLat = {{address.latitude}}; // Target latitude
                     const targetLng = {{address.longitude}}; // Target longitude
-                    console.log(`Latitude: ${currentLat}, Longitude: ${targetLng}`);
+                    //console.log(`Latitude: ${currentLat}, Longitude: ${targetLng}`);
                     const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
 
                     // closer than 500 meters
@@ -205,12 +109,6 @@
                     }
 
                     document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
-
-                    // direction
-                    const canvas = document.getElementById('heading-indicator');
-                    const userLocation = {lat: position.coords.latitude, lng: position.coords.longitude};
-                    const targetLocation = {lat: {{address.latitude}}, lng: {{address.longitude}}};
-                    drawHeadingIndicator(canvas, userLocation, targetLocation);
                 }, (error) => {
                     console.error(error);
                 }, {
@@ -218,18 +116,50 @@
                     timeout: 5000,
                     maximumAge: 0
                 });
-            }
-
-            function startLocationUpdates() {
-                locationInterval = setInterval(() => {
-                    updateCoordinates();
-                }, 10000); // Update every 10 seconds
-            }
-
-            updateCoordinates();
-            startLocationUpdates();
-
         });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up the map
+            const map = L.map('map').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+                subdomains: ['a', 'b', 'c']
+            }).addTo(map);
+
+            // Target location
+            const targetLatitude = {{address.latitude}};
+            const targetLongitude = {{address.longitude}};
+
+            // Add target marker
+            const targetMarker = L.marker([targetLatitude, targetLongitude]).addTo(map);
+            //targetMarker.bindPopup('Dojo').openPopup();
+
+            // Get the user's current location
+            navigator.geolocation.watchPosition((position) => {
+                const userLatitude = position.coords.latitude;
+                const userLongitude = position.coords.longitude;
+
+                // Update the map to show the user's location
+                const userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
+                //userMarker.bindPopup('You are here!').openPopup();
+
+                // Draw a line between user and target locations
+                const polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], { color: 'red' }).addTo(map);
+
+                // Adjust map bounds to show both points
+                const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
+                map.fitBounds(bounds, { padding: [70, 70] });
+
+            }, (error) => {
+                console.error(error);
+            }, {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            });
+        });
+
     </script>
 {% endblock %}
 
@@ -244,7 +174,8 @@
     <p>
         <b>Session hosted by</b>: {{ session.dojo.name }}<br>
         <b>When</b>: {{session.date}}  {{session.time_from}} to {{session.time_to}}<br>
-        <b>Where</b>: {{ address.name }} at {{ address.street }}, {{ address.zip_code }} {{ address.city }}, {{ address.state }}
+        <b>Where</b>: {{ address.name }} at {{ address.street }}, {{ address.zip_code }} {{ address.city }},
+        {{ address.state }} (<a href="geo:{{address.latitude}},{{address.longitude}}">Open in Maps</a>)
     </p>
 
     <h2>Registration</h2>
@@ -262,8 +193,8 @@
         <p>
         <p>
             2 - You need to be within 500m when the registration opens. Your current distance is <span id="distance"> - getting gps coordinates - </span>.
-            You can get closer with the following bearing:
         </p>
-        <canvas id="heading-indicator" width="200" height="200"></canvas>
+        <div id="map" style="width: 100%; height: 450px;"></div>
+
     </div>
 {% endblock %}
