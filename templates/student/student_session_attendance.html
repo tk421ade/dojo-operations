@@ -16,6 +16,8 @@
         var isCloseInTime = false;
         var isCloseInDistance = false;
         var map = null;
+        var userMarker = null;
+        var polyline = null;
 
         function toggleAttendanceForm() {
             if (isCloseInTime && isCloseInDistance) {
@@ -129,16 +131,32 @@
                     const userLatitude = currentLat;
                     const userLongitude = currentLng;
 
+                    var firstRun;
+                    if (userMarker === null) {
+                        firstRun = true;
+                    } else {
+                        firstRun = false;
+                    }
+
                     // Update the map to show the user's location
-                    const userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
-                    //userMarker.bindPopup('You are here!').openPopup();
+                    if ( userMarker === null ) {
+                        userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
+                    } else {
+                        userMarker.setLatLng([userLatitude, userLongitude]);
+                    }
 
                     // Draw a line between user and target locations
-                    const polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], {color: 'red'}).addTo(map);
+                    if (polyline === null) {
+                        polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], {color: 'red'}).addTo(map);
+                    } else {
+                        polyline.setLatLngs([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
+                    }
 
                     // Adjust map bounds to show both points
-                    const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
-                    map.fitBounds(bounds, {padding: [70, 70]});
+                    if ( firstRun ) {
+                        const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
+                        map.fitBounds(bounds, {padding: [70, 70]});
+                    }
                 } catch (error) {
                     console.error("Map WatchPosition Error(1):", error.message);
                     document.getElementById('map-errors').innerText += "Map WatchPosition Error(1):" + error.message + '<br>';
