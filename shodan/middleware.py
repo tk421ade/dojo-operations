@@ -1,3 +1,5 @@
+import urllib.parse
+
 import pytz
 from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
@@ -47,5 +49,22 @@ class DojoPermissionsMiddleware:
                     dojos_ids.append(dojo.id)
                 session['user_dojos'] = dojos_ids
 
+
+        return self.get_response(request)
+
+class DojoConfigurationMiddleware:
+    """
+    Assign to the request's session the dojo that is related to the hostname.
+    """
+    def __init__(self, get_response):
+        # delete all session data on restart
+        self.get_response = get_response
+
+    def __call__(self, request):
+        session: SessionStore = request.session
+        if not session.has_key('dojo_id'):
+            hostname = urllib.parse.urlparse(request.get_host()).hostname
+            dojo = Dojo.objects.filter(hostname=hostname).first()
+            session['dojo_id'] = dojo.pk
 
         return self.get_response(request)

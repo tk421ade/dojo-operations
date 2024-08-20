@@ -110,6 +110,7 @@
 
                     document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
                 }, (error) => {
+                    document.getElementById("distance").innerText = ' - error ' + error + '.'
                     console.error(error);
                 }, {
                     enableHighAccuracy: true,

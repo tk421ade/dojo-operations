@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from timezone_field import TimeZoneField
 
 from django.contrib.postgres.fields import ArrayField
@@ -15,6 +13,7 @@ class Dojo(models.Model):
     email = models.EmailField(max_length=200)
     users = models.ManyToManyField(User, related_name='dojos')
     timezone =  TimeZoneField()
+    hostname = models.CharField(null=True, blank=True, max_length=255, help_text='Hosted hostname (i.e dojo.brightonkarate.com.au)')
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

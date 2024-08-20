@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import datetime, date, timedelta
 from typing import Any
 
@@ -7,16 +8,26 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.contrib.sessions.backends.cache import SessionStore
 from django.shortcuts import render, redirect
 
+from dojoconf.models import Dojo
 from shodan.models import Student, Session, Attendance
 from web.forms import EmailForm
 
 
-# Create your views here.
+def _check_hostname_configuration(request):
+    hostname = urllib.parse.urlparse(request.get_host()).hostname
+    if not 'dojo' in request.session:
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+    if request.session['dojo'].hostname != hostname:
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
 def landing_page(request):
-    return render(request, 'landing_page.html')
+    _check_hostname_configuration(request)
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    return render(request, 'landing_page.html', {'dojo': dojo})
 
 
 def student_login(request):
+    _check_hostname_configuration(request)
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
@@ -31,10 +42,12 @@ def student_login(request):
             return redirect('student_session')
     else:
         form = EmailForm()
-    return render(request, 'student/student_login.html', {'form': form})
+
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    return render(request, 'student/student_login.html', {'form': form, 'dojo': dojo})
 
 def student_session(request):
-
+    _check_hostname_configuration(request)
     if 'student_email' not in request.session:
         # session expired
         messages.error(request, f'Session expired')
@@ -71,14 +84,18 @@ def student_session(request):
         messages.error(request, f'There are multiple sessions today, and the automatic attendance '
                                 f'registration does not support this (yet).')
 
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'student/student_session_attendance.html', {
             'student': student,
             'session': session,
             'address':address,
-            'countdown_date': countdown_date.isoformat()
+            'countdown_date': countdown_date.isoformat(),
+            'dojo': dojo,
+
         })
 
 def student_session_attendance(request):
+    _check_hostname_configuration(request)
     session: SessionBase = request.session
     if not 'student_email' in session:
         messages.error(request, f'Session expired')
@@ -123,4 +140,5 @@ def student_session_attendance(request):
         return redirect('student_login')
 
 def student_session_attendance_complete(request):
-    return render(request, 'student/student_session_attendance_completed.html')
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    return render(request, 'student/student_session_attendance_completed.html', {'dojo': dojo})

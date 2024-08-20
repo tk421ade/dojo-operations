@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'shodan.middleware.TimezoneMiddleware',
     'shodan.middleware.DojoPermissionsMiddleware',
+    'shodan.middleware.DojoConfigurationMiddleware',
 ]
 
 ROOT_URLCONF = 'shodan.urls'

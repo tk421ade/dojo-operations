@@ -3,7 +3,6 @@ from typing import Any
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
-from django.forms import TimeField
 
 from dojoconf.models import Dojo, Interval, Address, Classes, Event
 
@@ -63,6 +62,7 @@ class DojoAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'timezone')
     list_display_links = ('id', 'name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    autocomplete_fields = ["users"]
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         if request.user.is_superuser:
