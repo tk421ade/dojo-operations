@@ -61,6 +61,7 @@ class DojoFkFilterModelAdmin(admin.ModelAdmin):
 class DojoAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'timezone')
     list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     autocomplete_fields = ["users"]
     def get_queryset(self, request):
@@ -106,6 +107,7 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
 
 class EventAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 admin.site.register(Event, EventAdmin)
