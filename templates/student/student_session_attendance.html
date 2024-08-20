@@ -95,36 +95,36 @@
         // print direction and distance
         document.addEventListener('DOMContentLoaded', function() {
                 navigator.geolocation.watchPosition((position) => {
-                    // distance
-                    const currentLat = position.coords.latitude;
-                    const currentLng = position.coords.longitude;
-                    const targetLat = {{address.latitude}}; // Target latitude
-                    const targetLng = {{address.longitude}}; // Target longitude
-                    //console.log(`Latitude: ${currentLat}, Longitude: ${targetLng}`);
-                    const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
+                        // distance
+                        const currentLat = position.coords.latitude;
+                        const currentLng = position.coords.longitude;
+                        const targetLat = {{address.latitude}}; // Target latitude
+                        const targetLng = {{address.longitude}}; // Target longitude
+                        //console.log(`Latitude: ${currentLat}, Longitude: ${targetLng}`);
+                        const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
 
-                    // closer than 500 meters
-                    if ( distance < 0.5){
-                        isCloseInDistance = true;
-                    }
+                        // closer than 500 meters
+                        if (distance < 0.5) {
+                            isCloseInDistance = true;
+                        }
 
-                    document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
-                }, (error) => {
-                    if (error.code === 1) {
-                        document.getElementById("distance").innerText = ' - error: user denied access to location'
-                    } else if (error.code === 2) {
-                        document.getElementById("distance").innerText = ' - error: unable to determine location'
-                    } else if (error.code === 3) {
-                        document.getElementById("distance").innerText = ' - error: location retrieval timed out'
-                    } else {
-                        document.getElementById("distance").innerText = ' - unknown error: ' + error.message
-                    }
-                    console.error(error);
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 20000,
-                    maximumAge: 0
-                });
+                        document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
+                    }, (error) => {
+                        if (error.code === 1) {
+                            document.getElementById("distance").innerText = ' - error: user denied access to location'
+                        } else if (error.code === 2) {
+                            document.getElementById("distance").innerText = ' - error: unable to determine location'
+                        } else if (error.code === 3) {
+                            document.getElementById("distance").innerText = ' - error: location retrieval timed out'
+                        } else {
+                            document.getElementById("distance").innerText = ' - unknown error: ' + error.message
+                        }
+                        console.error(error);
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 20000,
+                        maximumAge: 0
+                    });
         });
     </script>
     <script>
@@ -147,7 +147,6 @@
             // Get the user's current location
             navigator.geolocation.watchPosition((position) => {
                 try {
-                    document.getElementById('map-errors').innerText += "Attempting to get position<br>";
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
