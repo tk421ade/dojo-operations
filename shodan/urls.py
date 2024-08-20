@@ -19,6 +19,10 @@ from django.urls import path, include
 
 from web import views
 
+admin.site.site_header = "Shodan Dojo Admin"
+admin.site.site_title = "Shodan Admin Portal"
+admin.site.index_title = "Welcome to Shodan Dojo Admin Portal"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('web.urls')),
