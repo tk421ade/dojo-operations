@@ -147,6 +147,7 @@
             // Get the user's current location
             navigator.geolocation.watchPosition((position) => {
                 try {
+                    document.getElementById('map-errors').innerText += "Attempting to get position<br>";
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
