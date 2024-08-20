@@ -146,22 +146,28 @@
 
             // Get the user's current location
             navigator.geolocation.watchPosition((position) => {
-                const userLatitude = position.coords.latitude;
-                const userLongitude = position.coords.longitude;
+                try {
+                    const userLatitude = position.coords.latitude;
+                    const userLongitude = position.coords.longitude;
 
-                // Update the map to show the user's location
-                const userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
-                //userMarker.bindPopup('You are here!').openPopup();
+                    // Update the map to show the user's location
+                    const userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
+                    //userMarker.bindPopup('You are here!').openPopup();
 
-                // Draw a line between user and target locations
-                const polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], { color: 'red' }).addTo(map);
+                    // Draw a line between user and target locations
+                    const polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], {color: 'red'}).addTo(map);
 
-                // Adjust map bounds to show both points
-                const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
-                map.fitBounds(bounds, { padding: [70, 70] });
+                    // Adjust map bounds to show both points
+                    const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
+                    map.fitBounds(bounds, {padding: [70, 70]});
+                } catch (error) {
+                    console.error("Map WatchPosition Error(1):", error.message);
+                    document.getElementById('map-errors').innerText += "Map WatchPosition Error(1):" + error.message + '<br>';
+                }
 
             }, (error) => {
-                console.error(error);
+                console.error("Map WatchPosition Error(2):", error.message);
+                document.getElementById('map-errors').innerText += "Map WatchPosition Error(2):" + error.message + '<br>';
             }, {
                 enableHighAccuracy: true,
                 timeout: 5000,
@@ -204,6 +210,7 @@
             2 - You need to be within 500m when the registration opens. Your current distance is <span id="distance"> - getting gps coordinates - </span>.
         </p>
         <div id="map" style="width: 100%; height: 450px;"></div>
+        <div id="map-errors" ></div>
 
     </div>
 {% endblock %}
