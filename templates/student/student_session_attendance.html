@@ -121,10 +121,11 @@
 
                 // show the distance
                 const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
-                if (distance < 0.5) {
+                if (distance < 0.1) {
                     isCloseInDistance = true;
                 }
-                document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
+                //document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
+                document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}.`;
 
                 // show the map
                 try {
@@ -212,7 +213,7 @@
             <span  id="countdown"> - calculating - </span>
         <p>
         <p>
-            2 - You need to be within 500m when the registration opens. Your current distance is <span id="distance"> - getting gps coordinates - </span>.
+            2 - You need to be within 100m when the registration opens. Your current distance is <span id="distance"> - getting gps coordinates - </span>.
         </p>
         <div id="map" style="width: 100%; height: 450px;"></div>
         <div id="map-errors" ></div>
