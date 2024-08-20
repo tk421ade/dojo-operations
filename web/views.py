@@ -13,21 +13,28 @@ from shodan.models import Student, Session, Attendance
 from web.forms import EmailForm
 
 
-def _check_hostname_configuration(request):
-    hostname = urllib.parse.urlparse(request.get_host()).hostname
-    if not 'dojo' in request.session:
-        return render(request, 'bad_configuration.html', {'hostname': hostname})
-    if request.session['dojo'].hostname != hostname:
-        return render(request, 'bad_configuration.html', {'hostname': hostname})
+def _is_hostname_configured(request):
+    if not 'dojo_id' in request.session:
+        return False
+    elif not request.session['dojo_id']:
+        return False
+    else:
+        return True
 
 def landing_page(request):
-    _check_hostname_configuration(request)
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'landing_page.html', {'dojo': dojo})
 
 
 def student_login(request):
-    _check_hostname_configuration(request)
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
@@ -47,7 +54,10 @@ def student_login(request):
     return render(request, 'student/student_login.html', {'form': form, 'dojo': dojo})
 
 def student_session(request):
-    _check_hostname_configuration(request)
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
     if 'student_email' not in request.session:
         # session expired
         messages.error(request, f'Session expired')
@@ -95,7 +105,10 @@ def student_session(request):
         })
 
 def student_session_attendance(request):
-    _check_hostname_configuration(request)
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
     session: SessionBase = request.session
     if not 'student_email' in session:
         messages.error(request, f'Session expired')
