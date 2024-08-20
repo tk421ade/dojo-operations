@@ -118,7 +118,7 @@ class Sale(models.Model):
 
     def __str__(self):
         if self.subscription:
-            return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.subscription__subscription_product__name} {self.date_from} {self.date_to} "
+            return f"[{self.id}] {self.student} {self.paid}/{self.amount}  {self.subscription.subscription_product.name} {self.date_from} {self.date_to} "
         elif self.event:
             return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.event__name} "
         elif self.category:

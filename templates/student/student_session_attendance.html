@@ -7,9 +7,57 @@
 
 {% block style %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+
+    <style>
+        .notification {
+            background-color: #f44336; /* Error color */
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification.error {
+            background-color: #f44336; /* Error color */
+        }
+
+        .notification.success {
+            background-color: #4caf50; /* Success color */
+        }
+
+        .dismiss {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .dismiss:hover {
+            color: #ccc;
+        }
+
+        .dismiss:focus {
+            outline: none;
+        }
+    </style>
 {% endblock %}
 
 {% block js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notification = document.getElementById('error-notification');
+            const dismissButton = notification.querySelector('.dismiss');
+
+            dismissButton.addEventListener('click', () => {
+                notification.style.display = 'none';
+            });
+        });
+    </script>
+
+
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
     <script>
@@ -187,7 +235,9 @@
 {% block content %}
     {% if messages %}
         {% for message in messages %}
-            <p>{{ message }}</p>
+            <div class="notification error" id="error-notification">
+                <span class="message">{{ message }}</span>
+            </div>
         {% endfor %}
     {% endif %}
 

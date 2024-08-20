@@ -9,6 +9,7 @@ from django.contrib.sessions.backends.cache import SessionStore
 from django.shortcuts import render, redirect
 
 from dojoconf.models import Dojo
+from financial.models import Sale
 from shodan.models import Student, Session, Attendance
 from web.forms import EmailForm
 
@@ -93,6 +94,18 @@ def student_session(request):
     if len(today_sessions) > 1:
         messages.error(request, f'There are multiple sessions today, and the automatic attendance '
                                 f'registration does not support this (yet).')
+
+    # make sure that the subscription is update.
+    sales = Sale.objects.filter(
+        dojo_id=student.dojo.pk,
+        student_id=student.pk,
+        date_from__lte=date.today(),
+        date_to__gte=date.today()
+    )
+    if not len(sales):
+        messages.error(request, f'Your subscription has expired. Please renew it.')
+    elif sales.amount > sales.paid:
+        messages.error(request, f'Your subscription has expired. Please renew it.')
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'student/student_session_attendance.html', {
