@@ -133,9 +133,12 @@ class Sale(models.Model):
 class Expense(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True, help_text='Optional, if related with an event.')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True, help_text='Optional, if related with a category.')
     name = models.CharField(max_length=200)
     date = models.DateField()
-    cost = MoneyField(max_digits=10, decimal_places=2, default_currency='AUD')
+    #cost = MoneyField(max_digits=10, decimal_places=2, default_currency='AUD')
+    amount = models.DecimalField(max_digits=6, decimal_places=2)
+    currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)

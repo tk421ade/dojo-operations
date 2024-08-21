@@ -168,7 +168,8 @@ class CategoryAdmin(DojoFkFilterModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class ExpenseAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name',)
+    list_display = ('id', 'name', 'category__name', 'event__name', 'amount', 'currency')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 
