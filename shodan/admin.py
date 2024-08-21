@@ -95,7 +95,8 @@ class SessionAdmin(DojoFkFilterModelAdmin):
         }
 
         # Your Python code here
-        all_classes = Classes.objects.all()
+        dojo_id = request.session.get('dojo_id')
+        all_classes = Classes.objects.filter(dojo_id=dojo_id)
         for classes in all_classes:
             current_date = classes.interval.starting_at
             if current_date < datetime.now().date():
