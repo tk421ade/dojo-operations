@@ -35,6 +35,16 @@ class SessionAdmin(DojoFkFilterModelAdmin):
         return qs.order_by('date')
 
     def changelist_view(self, request, extra_context=None):
+        """
+
+        If there are no extra filter parameters, display the most recent sessions first
+
+        :param request:
+        :param extra_context:
+        :return:
+        """
+        # TODO there is a bug here.
+
         qs = self.get_queryset(request)
         future_qs = qs.filter(date__gte=date.today())
         past_qs = qs.filter(date__lt=date.today())
