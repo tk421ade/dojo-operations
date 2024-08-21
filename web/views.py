@@ -71,7 +71,8 @@ def student_session(request):
     future_sessions: Session = Session.objects.filter(
         dojo_id=student.dojo.id,
         date__gte=date.today()
-    )
+    ).order_by('date')
+
     if not len(future_sessions):
         messages.error(request, f'No future sessions found. ')
         return redirect('student_login')
