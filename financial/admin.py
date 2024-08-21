@@ -25,8 +25,8 @@ class SubscriptionProductAdmin(DojoFkFilterModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class SubscriptionAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'subscription_product__name', 'student__name', 'amount', 'currency', 'status')
-    list_display_links = ('id', 'subscription_product__name')
+    list_display = ('id',  'student__name', 'subscription_product__name', 'amount', 'currency', 'status')
+    list_display_links = ('id', 'student__name')
     search_fields = ('id',  'subscription_product__name', 'student__name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 

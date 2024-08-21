@@ -65,6 +65,13 @@ class Subscription(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    def clean(self):
+        if self.student.subscription_set.filter(
+            dojo_id=str(self.dojo.id),
+            status='active'
+        ).exists():
+            raise ValidationError({'status': "Student already has an active subscription"})
+
     def save(self, *args, **kwargs):
         if not self.amount and self.subscription_product:
             self.amount = self.subscription_product.amount
