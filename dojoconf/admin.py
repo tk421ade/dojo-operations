@@ -3,6 +3,7 @@ from typing import Any
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
+from django.urls import reverse
 
 from dojoconf.models import Dojo, Interval, Address, Classes, Event
 
@@ -69,6 +70,18 @@ class DojoAdmin(admin.ModelAdmin):
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     autocomplete_fields = ["users"]
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Dojo is the entity that organises 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> and  
+            <a href="{reverse('admin:dojoconf_event_changelist')}">events</a> to train   
+            <a href="{reverse('admin:shodan_student_changelist')}">students</a>."""
+        return super().changelist_view(request, extra_context)
+
+
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         if request.user.is_superuser:
@@ -101,12 +114,29 @@ class IntervalAdmin(DojoFkFilterModelAdmin):
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Intervals defines how often the <a href="{reverse('admin:dojoconf_classes_changelist')}">session</a> are taken (i.e Monday every week), 
+            and when the classes starts and finishes (i.e from Jan 15 to Dec 15)"""
+        return super().changelist_view(request, extra_context)
 
 class AddressAdmin(DojoFkFilterModelAdmin):
+    help_text = "Hello world"
     list_display = ('id', 'name', 'street', 'city', 'state')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Address has the location where the 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> and 
+            the <a href="{reverse('admin:dojoconf_event_changelist')}">events</a> are imparted."""
+        return super().changelist_view(request, extra_context)
+
 
 
 class ClassesAdmin(DojoFkFilterModelAdmin):
@@ -115,11 +145,32 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: A Karate Class is the template that creates scheduled 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>, 
+            defined by type and skill (i.e Adults, Kids, Beginners), how often it happens (aka <a href="{reverse('admin:dojoconf_interval_changelist')}">Class Interval</a>), 
+            where it happens (aka <a href="{reverse('admin:dojoconf_address_changelist')}">Address</a>)
+            and the duration. """
+        return super().changelist_view(request, extra_context)
+
+
 class EventAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Events complements the <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> training 
+            and happens a handful times on the year (i.e seminars and gradings). 
+            One event creates one or multiple <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>.   """
+        return super().changelist_view(request, extra_context)
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(Dojo, DojoAdmin)

@@ -1,0 +1,14 @@
+{% extends "admin/change_list.html" %}
+
+{% block result_list %}
+    {{ block.super }}
+    {% comment %}{% if not cl.result_list|length and documentation %}{% endcomment %}
+    <div class="help">
+        <p style="font-size: 0.8125rem">
+            {{ documentation|safe }}
+        </p>
+    </div>
+
+    {% comment %}{% endif %}{% endcomment %}
+
+{% endblock %}

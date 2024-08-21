@@ -19,6 +19,15 @@ class StudentAdmin(DojoFkFilterModelAdmin):
     list_display_links = ('id', 'name')
     list_filter = ('status',)
     search_fields = ('name',)
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        # <a href="{reverse('admin:shodan_student_changelist')}">students</a>
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Students is an individual that practices karate. 
+            They train in <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> by 
+            <a href="{reverse('admin:financial_subscription_changelist')}">subscribing</a> to a 
+            <a href="{reverse('admin:financial_subscriptionproduct_changelist')}">product</a>. """
+        return super().changelist_view(request, extra_context)
 
 
 class SessionAdmin(DojoFkFilterModelAdmin):
@@ -28,6 +37,7 @@ class SessionAdmin(DojoFkFilterModelAdmin):
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
+    date_hierarchy = "date"
     #form = AdminSessionForm
 
     def get_queryset(self, request):
@@ -43,6 +53,8 @@ class SessionAdmin(DojoFkFilterModelAdmin):
         :param extra_context:
         :return:
         """
+        extra_context = extra_context or {}
+
         # TODO there is a bug here.
 
         qs = self.get_queryset(request)
@@ -50,6 +62,17 @@ class SessionAdmin(DojoFkFilterModelAdmin):
         past_qs = qs.filter(date__lt=date.today())
         combined_qs = list(future_qs) + list(past_qs)
         self.queryset = combined_qs
+
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Session are training opportunities created from 
+            <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> and 
+            <a href="{reverse('admin:dojoconf_event_changelist')}">events</a>. 
+            You track the <a href="{reverse('admin:shodan_student_changelist')}">students</a> that 
+            <a href="{reverse('admin:shodan_attendance_changelist')}">attended</a> the session. 
+            <a href="{reverse('admin:shodan_student_changelist')}">Students</a> can register the 
+            <a href="{reverse('admin:shodan_attendance_changelist')}">attendance</a> automatically.  
+            Additionally, you can generate sessions automatically from <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> 
+            by clicking the button 'Create Sessions Automatically'. """
         return super().changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -121,13 +144,29 @@ class SessionAdmin(DojoFkFilterModelAdmin):
 
         return redirect(reverse('admin:shodan_session_changelist'))
 
+
 class AttendanceAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'date', 'student__name','session__name', 'duration', 'points')
     list_display_links = ('id', 'student__name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     search_fields = ('student__name', 'session__name')
+    autocomplete_fields = ["student", "dojo"]
     list_filter = ('date',)
+    date_hierarchy = "date"
 
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+
+        attendance_doc = ""
+        if request.session.has_key('dojo_id'):
+            dojo_id = request.session.has_key('dojo_id')
+            dojo = Dojo.objects.get(id=dojo_id)
+            attendance_doc = f"  Students can register the attendance via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
+
+        extra_context['documentation'] = \
+            f"""<b>help</b>: Attendance tracks the <a href="{reverse('admin:shodan_student_changelist')}">students</a> 
+            that has trained in a <a href="{reverse('admin:shodan_session_changelist')}">session</a>. {attendance_doc}"""
+        return super().changelist_view(request, extra_context)
 
 # Admin-editable models
 
