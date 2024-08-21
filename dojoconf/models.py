@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
+from django.utils.safestring import mark_safe
 from timezone_field import TimeZoneField
 
 from django.contrib.postgres.fields import ArrayField
@@ -62,8 +63,10 @@ class Address(models.Model):
     state = models.CharField(max_length=100)
     zip_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100)
-    latitude = models.DecimalField(max_digits=20, decimal_places=15, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=20, decimal_places=15, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=20, decimal_places=15, null=True, blank=True,
+                                   help_text=mark_safe("<a target='_blank' href='https://www.latlong.net/'>Find Latitude</a>"))
+    longitude = models.DecimalField(max_digits=20, decimal_places=15, null=True, blank=True,
+                                    help_text=mark_safe("<a target='_blank' href='https://www.latlong.net/'>Find Longitude</a>"))
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

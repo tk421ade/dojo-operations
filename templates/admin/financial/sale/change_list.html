@@ -4,6 +4,6 @@
     {{ block.super }}
     <form action="{% url 'admin:financial_sale_subscription' %}" method="post">
         {% csrf_token %}
-        <button type="submit" class="button">Add Pending Subscriptions</button>
+        <button type="submit" class="button">Update Sales from Subscriptions</button>
     </form>
 {% endblock %}

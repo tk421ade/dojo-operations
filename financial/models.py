@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from email.policy import default
 
 from django.utils.safestring import mark_safe
@@ -12,10 +12,13 @@ CURRENCIES = [('AUD', 'AUD'),]
 
 # Create your models here.
 class SubscriptionProduct(models.Model):
+    MONTHLY = 'monthly'
+    QUARTERLY = 'quarterly'
+    CUSTOM = 'custom'
     FREQUENCY_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('quarterly', 'Quarterly'),
-        ('custom', 'Custom'),
+        (MONTHLY, 'Monthly'),
+        (QUARTERLY, 'Quarterly'),
+        (CUSTOM, 'Custom'),
     ]
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     name = models.CharField(max_length=200, help_text='i.e "Adult, Children, Family"')

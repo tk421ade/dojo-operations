@@ -57,6 +57,10 @@ class DojoFkFilterModelAdmin(admin.ModelAdmin):
                 return False
         return super().has_view_permission(request, obj)
 
+    def created_at_tz(self, obj):
+        if obj.created_at and obj.dojo:
+            return obj.created_at.astimezone(obj.dojo.timezone).strftime('%Y-%m-%d %H:%M:%S')
+
 # Register your models here.
 class DojoAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'timezone')
