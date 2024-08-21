@@ -6,7 +6,8 @@ clean:
 
 prepare:clean
 	set -ex
-	virtualenv venv -p /usr/bin/python3
+	#virtualenv venv -p /usr/bin/python3
+	python3 -m venv venv
 	venv/bin/pip3 install -r requirements.txt
 	#venv/bin/pip install .
 

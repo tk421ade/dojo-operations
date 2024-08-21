@@ -16,18 +16,23 @@ class SubscriptionCustomFrequencyInline(admin.StackedInline):
 
 class SubscriptionProductAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name', 'frequency', 'amount', 'currency')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     inlines = [SubscriptionCustomFrequencyInline]
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class SubscriptionAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'subscription_product__name', 'student__name', 'amount', 'currency', 'status')
+    list_display_links = ('id', 'subscription_product__name')
     search_fields = ('id',  'subscription_product__name', 'student__name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 
 class SalesAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/financial/sale/change_list.html'
-    list_display = ('id', 'subscription__subscription_product__name','event__name', 'category__name', 'amount', 'paid')
+    list_display = ('id', 'subscription__subscription_product__name','event__name', 'category__name', 'student__name', 'amount', 'paid')
+    list_display_links = ('id', 'subscription__subscription_product__name')
+    search_fields = ('id','student__name', 'subscription__subscription_product__name','event__name', 'category__name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     autocomplete_fields = ["dojo", "subscription", "category", "event", "student"]
     fieldsets = (

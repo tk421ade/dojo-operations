@@ -93,20 +93,26 @@ class DojoAdmin(admin.ModelAdmin):
 
 class IntervalAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name', 'type', 'days_of_week', 'starting_at', 'finishing_at')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class AddressAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name',)
+    list_display = ('id', 'name', 'street', 'city', 'state')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
-
 
 
 class ClassesAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name', 'address__name', 'interval__name', 'time_from', 'time_to')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
 class EventAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name',)
+    list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 

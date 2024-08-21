@@ -24,6 +24,8 @@ class StudentAdmin(DojoFkFilterModelAdmin):
 class SessionAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/shodan/session/change_list.html'
     list_display = ('id', 'name', 'date', 'time_from', 'time_to', 'duration' )
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
     #form = AdminSessionForm
@@ -111,6 +113,7 @@ class SessionAdmin(DojoFkFilterModelAdmin):
 
 class AttendanceAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'date', 'student__name','session__name', 'duration', 'points')
+    list_display_links = ('id', 'student__name')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     search_fields = ('student__name', 'session__name')
     list_filter = ('date',)
