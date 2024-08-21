@@ -26,7 +26,8 @@ class DojoFkFilterModelAdmin(admin.ModelAdmin):
         initial = super().get_changeform_initial_data(request)
         if not request.user.is_superuser:
             dojo_ids = request.session.get('user_dojos', [])
-            initial['dojo'] = dojo_ids[0]
+            if dojo_ids:
+                initial['dojo'] = dojo_ids[0]
         return initial
 
     def get_search_results(self, request, queryset, search_term):
