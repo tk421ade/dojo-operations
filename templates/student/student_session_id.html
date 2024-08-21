@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content_header %}
+    <h1 class="text-3xl">Welcome {{ student.name }}</h1>
+{% endblock %}
+
+
+{% block content %}
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <p>Choose your session for {{ date }}</p>
+    {% for session in sessions %}
+        <p><a href="{% url 'student_session_id' session.id %}">
+            <button class="btn success mb-2">{{ session.name }} ({{ session.time_from  }} to {{ session.time_to }})</button>
+        </a></p>
+    {% endfor %}
+{% endblock %}

@@ -66,16 +66,40 @@ def student_session(request):
 
     student_email = request.session['student_email']
     student: Student = Student.objects.filter(email=student_email).first()
-    sessions: Session = Session.objects.filter(
+
+    # find the correct session
+    future_sessions: Session = Session.objects.filter(
         dojo_id=student.dojo.id,
         date__gte=date.today()
     )
-    if not len(sessions):
-        messages.error(request, f'No future classes found. ')
+    if not len(future_sessions):
+        messages.error(request, f'No future sessions found. ')
         return redirect('student_login')
-    else:
-        session = sessions[0]
 
+    future_session = future_sessions[0]
+    sessions: Session = Session.objects.filter(
+        dojo_id=student.dojo.id,
+        date=future_session.date
+    ).all()
+
+    if len(sessions) == 1:
+        # only one session in the day, we can redirect
+        return redirect('student_session_id', session_id=sessions[0].pk)
+    else:
+        dojo = Dojo.objects.get(id=request.session['dojo_id'])
+        return render(request, 'student/student_session_id.html', {
+            'student': student,
+            'sessions': sessions,
+            'dojo': dojo,
+            'date': future_session.date
+
+        })
+
+def student_session_id(request, session_id):
+
+    session: Session = Session.objects.get(id=session_id)
+    student_email = request.session['student_email']
+    student: Student = Student.objects.filter(email=student_email).first()
 
     if not session:
         messages.error(request, f'Sessions not found')
@@ -87,36 +111,28 @@ def student_session(request):
 
     countdown_date = datetime.combine(session.date, session.time_from)
 
-    today_sessions: Session = Session.objects.filter(
-        dojo_id=student.dojo.id,
-        date=date.today()
-    )
-    if len(today_sessions) > 1:
-        messages.error(request, f'There are multiple sessions today, and the automatic attendance '
-                                f'registration does not support this (yet).')
-
     # make sure that the subscription is update.
     sales = Sale.objects.filter(
         dojo_id=student.dojo.pk,
         student_id=student.pk,
         date_from__lte=date.today(),
-        date_to__gte=date.today()
+        date_to__gte=date.today(),
+        subscription__isnull=False
     )
     if not len(sales):
         messages.error(request, f'Your subscription has expired. Please renew it.')
-    elif sales.amount > sales.paid:
+    elif sales[0].amount > sales[0].paid:
         messages.error(request, f'Your subscription has expired. Please renew it.')
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'student/student_session_attendance.html', {
-            'student': student,
-            'session': session,
-            'address':address,
-            'countdown_date': countdown_date.isoformat(),
-            'dojo': dojo,
+        'student': student,
+        'session': session,
+        'address':address,
+        'countdown_date': countdown_date.isoformat(),
+        'dojo': dojo,
 
-        })
-
+    })
 def student_session_attendance(request):
     if not _is_hostname_configured(request):
         hostname = request.get_host().split(":")[0]
