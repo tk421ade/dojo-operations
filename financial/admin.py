@@ -85,7 +85,7 @@ class SaleAdmin(DojoFkFilterModelAdmin):
 
         attendance_doc = "."
         if request.session.has_key('dojo_id'):
-            dojo_id = request.session.has_key('dojo_id')
+            dojo_id = request.session.get('dojo_id')
             dojo = Dojo.objects.get(id=dojo_id)
             attendance_doc = f" via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
 
