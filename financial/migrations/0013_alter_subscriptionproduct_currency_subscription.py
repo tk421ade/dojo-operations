@@ -14,6 +14,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            sql=f"DROP INDEX IF EXISTS financial_subscription_dojo_id_d41ff7da",
+            reverse_sql=f"CREATE INDEX financial_subscription_dojo_id_d41ff7da ON financial_subscription (dojo_id);"
+        ),
         migrations.AlterField(
             model_name='subscriptionproduct',
             name='currency',
