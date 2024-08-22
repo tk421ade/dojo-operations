@@ -46,16 +46,16 @@
 {% endblock %}
 
 {% block js %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const notification = document.getElementById('error-notification');
-            const dismissButton = notification.querySelector('.dismiss');
-
-            dismissButton.addEventListener('click', () => {
-                notification.style.display = 'none';
-            });
-        });
-    </script>
+{#    <script>#}
+{#        document.addEventListener('DOMContentLoaded', function() {#}
+{#            const notification = document.getElementById('error-notification');#}
+{#            const dismissButton = notification.querySelector('.dismiss');#}
+{##}
+{#            dismissButton.addEventListener('click', () => {#}
+{#                notification.style.display = 'none';#}
+{#            });#}
+{#        });#}
+{#    </script>#}
 
 
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
@@ -214,7 +214,15 @@
 
             }, (error) => {
                 if (error.code === 1) {
-                    document.getElementById("distance").innerText = ' - error: user denied access to location'
+                    document.getElementById("distance").innerText = ' - error: access denied. ' +
+                        'Please enable and authorize location services. ';
+                    if (navigator.userAgent.includes("Safari")) {
+                        if (navigator.platform === "iPad" || navigator.platform === "iPhone") {
+                            document.getElementById("distance").innerText += "On your iPhone or iPad, open the " +
+                                "Settings app. Tap Privacy > Location Services. Scroll down, then tap Safari Websites. " +
+                                "Under “Allow location access,” make sure it's set to While using the app.";
+                        }
+                    }
                 } else if (error.code === 2) {
                     document.getElementById("distance").innerText = ' - error: unable to determine location'
                 } else if (error.code === 3) {
@@ -228,6 +236,11 @@
                 timeout: 20000,
                 maximumAge: 120000
             });
+
+            if (navigator.platform === "iPad" || navigator.platform === "iPhone") {
+                document.getElementById('open-in-maps').href = 'maps://?q={{address.latitude}},{{address.longitude}}';
+            }
+
         });
     </script>
 {% endblock %}
@@ -246,7 +259,7 @@
         <b>Session hosted by</b>: {{ session.dojo.name }}<br>
         <b>When</b>: {{session.date}}  {{session.time_from}} to {{session.time_to}}<br>
         <b>Where</b>: {{ address.name }} at {{ address.street }}, {{ address.zip_code }} {{ address.city }},
-        {{ address.state }} (<a href="geo:{{address.latitude}},{{address.longitude}}">Open in Maps</a>)
+        {{ address.state }} (<a id="open-in=maps" href="geo:{{address.latitude}},{{address.longitude}}">Open in Maps</a>)
     </p>
 
     <h2>Registration</h2>
