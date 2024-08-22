@@ -217,7 +217,7 @@
                     document.getElementById("distance").innerText = ' - error: access denied. ' +
                         'Please enable and authorize location services. ';
                     if (navigator.userAgent.includes("Safari")) {
-                        if (navigator.platform === "iPad" || navigator.platform === "iPhone") {
+                        if (navigator.userAgent.includes('Macintosh')) {
                             document.getElementById("distance").innerText += "On your iPhone or iPad, open the " +
                                 "Settings app. Tap Privacy > Location Services. Scroll down, then tap Safari Websites. " +
                                 "Under “Allow location access,” make sure it's set to While using the app.";
@@ -237,7 +237,7 @@
                 maximumAge: 120000
             });
 
-            if (navigator.platform === "iPad" || navigator.platform === "iPhone") {
+            if (navigator.userAgent.includes('Macintosh')) {
                 document.getElementById('open-in-maps').href = 'maps://?q={{address.latitude}},{{address.longitude}}';
             }
 
