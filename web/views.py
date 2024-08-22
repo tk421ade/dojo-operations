@@ -120,10 +120,13 @@ def student_session_id(request, session_id):
         date_to__gte=date.today(),
         subscription__isnull=False
     )
+
+    renew_message = "Osu! Your membership is about to expire. Renew, recharge, and keep punching forward!"
+
     if not len(sales):
-        messages.error(request, f'Your subscription has expired. Please renew it.')
+        messages.error(request, renew_message)
     elif sales[0].amount > sales[0].paid:
-        messages.error(request, f'Your subscription has expired. Please renew it.')
+        messages.error(request, renew_message)
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'student/student_session_attendance.html', {
