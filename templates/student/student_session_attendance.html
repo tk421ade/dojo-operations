@@ -92,22 +92,29 @@
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
                 var str = ""
-                var showing = false;
+                var showing = 0;
                 if (days > 0) {
-                    str += `${days} days, `;
-                    showing = true;
+                    if (showing) { str += ', ' }
+                    str += `${days} days`;
+                    showing ++;
                 }
-                if (hours > 0 || showing) {
-                    str += `${hours} hours, `;
-                    showing = true;
+                if (hours > 0 && showing <= 1) {
+                    if (showing) { str += ', ' }
+                    str += `${hours} hours`;
+                    showing ++;
                 }
-                if (minutes > 0  || showing) {
-                    str += `${minutes} minutes, `;
-                    showing = true;
+                if (minutes > 0  && showing <= 1) {
+                    if (showing) { str += ', ' }
+                    str += `${minutes} minutes`;
+                    showing ++;
                 }
-                if (seconds > 0  || showing) {
+                if (seconds > 0 && showing <= 1) {
+                    if (showing) { str += ', ' }
                     str += `${seconds} seconds`;
+                    showing ++;
                 }
+
+                str += `.`;
 
                 countdownElement.innerHTML = `${str}`;
 
@@ -153,7 +160,7 @@
                 subdomains: ['a', 'b', 'c']
             }).addTo(map);
 
-            // Target location
+            // Target locationdistance
             const targetLatitude = {{address.latitude}};
             const targetLongitude = {{address.longitude}};
 
@@ -173,7 +180,7 @@
                     isCloseInDistance = true;
                 }
                 //document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
-                document.getElementById("distance").innerText = `${distance.toFixed(2)} km.`;
+                document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
 
                 // show the map
                 try {
