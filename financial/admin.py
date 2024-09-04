@@ -86,12 +86,27 @@ class SaleAdmin(DojoFkFilterModelAdmin):
 
         attendance_doc = "."
         if request.session.has_key('dojo_id'):
-            dojos = Dojo.objects.filter(users__username=request.user.username)
-            attendance_doc = f" via "
-            for i, dojo in enumerate(dojos):
-                if i != 0 and i != len(dojos) - 1:  # not the first of the last
-                    attendance_doc += ", "
-                attendance_doc += f"<a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
+            dojo_id = request.session.get('dojo_id')
+            if dojo_id:
+                dojo = Dojo.objects.get(id=dojo_id)
+                attendance_doc = f" via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
+
+            # TODO multidojo support
+            #dojos = Dojo.objects.filter(users__username=request.user.username)
+            # attendance_doc = f"."
+            # for i, dojo in enumerate(dojos):
+            #     if i == 0:
+            #         attendance_doc = f"via "
+            #
+            #     if not (i == 0 or i == len(dojos) - 1):  # not the first of the last
+            #         attendance_doc += ", "
+            #
+            #     attendance_doc += f"<a href='https://{dojo.hostname}'>{dojo.hostname}</a>"
+            #
+            #     if i == len(dojos) - 1:
+            #         attendance_doc += "."
+
+
 
         extra_context['documentation'] = \
             f"""<b>Help</b>: Sales track income from student <a href="{reverse('admin:financial_membership_changelist')}">memberships</a> 
