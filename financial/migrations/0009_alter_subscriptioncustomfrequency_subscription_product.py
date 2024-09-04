@@ -11,9 +11,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='subscriptioncustomfrequency',
-            name='membership_product',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, to='financial.subscriptionproduct'),
-        ),
+        # migrations.AlterField(
+        #     model_name='subscriptioncustomfrequency',
+        #     name='membership_product',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, to='financial.subscriptionproduct'),
+        # ),
     ]
