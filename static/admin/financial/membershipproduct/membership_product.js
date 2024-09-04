@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function() {
     var frequencyField = document.getElementById('id_frequency');
-    var customFrequencyInline = document.getElementById('subscriptioncustomfrequency-group');
+    var customFrequencyInline = document.getElementById('membershipcustomfrequency-group');
     if (frequencyField.value === 'custom') {
         //console.log("(1) Is block")
         customFrequencyInline.style.display = 'block';

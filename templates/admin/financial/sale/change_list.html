@@ -2,8 +2,8 @@
 
 {% block object-tools %}
     {{ block.super }}
-    <form action="{% url 'admin:financial_sale_subscription' %}" method="post">
+    <form action="{% url 'admin:financial_sale_membership' %}" method="post">
         {% csrf_token %}
-        <button type="submit" class="button">Update Sales from Subscriptions</button>
+        <button type="submit" class="button">Update Sales from memberships</button>
     </form>
 {% endblock %}

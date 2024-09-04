@@ -11,7 +11,7 @@ from shodan.models import Dojo, Event, Student
 CURRENCIES = [('AUD', 'AUD'),]
 
 # Create your models here.
-class SubscriptionProduct(models.Model):
+class MembershipProduct(models.Model):
     MONTHLY = 'monthly'
     QUARTERLY = 'quarterly'
     CUSTOM = 'custom'
@@ -34,28 +34,28 @@ class SubscriptionProduct(models.Model):
     def __str__(self):
         return f"[{self.id}] {self.name}"
 
-class SubscriptionCustomFrequency(models.Model):
+class MembershipCustomFrequency(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     frequency = models.TextField(help_text=mark_safe("""
     Each row is a date. You can add ranges (i.e '2024-08-01 to 2024-08-30' or single days (i.e 2024-08-01))<br>
     <br>
-    For example, to create a subscription that will cover 4 payments, one per school holidays in 2024 in SA, 
+    For example, to create a membership that will cover 4 payments, one per school holidays in 2024 in SA, 
     those will be the contents:<br>
     2024-01-29 to 2024-04-12<br>
     2024-04-29 to 2024-07-05<br>
     2024-07-22 to 2024-09-27<br>
     2024-10-14 to 2024-12-13<br>
     """))
-    subscription_product = models.OneToOneField(SubscriptionProduct, on_delete=models.CASCADE, null=True)
+    membership_product = models.OneToOneField(MembershipProduct, on_delete=models.CASCADE, null=True)
 
 
-class Subscription(models.Model):
+class Membership(models.Model):
     STATUS = [
         ('active', 'ACTIVE'),
         ('cancelled', 'CANCELLED'),
     ]
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
-    subscription_product = models.ForeignKey(SubscriptionProduct, on_delete=models.CASCADE)
+    membership_product = models.ForeignKey(MembershipProduct, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     status = models.CharField(max_length=10, choices=STATUS, default='active')
     amount = models.DecimalField(max_digits=6, decimal_places=2, help_text="Auto populated if empty", null=True, blank=True)
@@ -66,22 +66,22 @@ class Subscription(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
-        if self.student.subscription_set.filter(
+        if self.student.membership_set.filter(
             dojo_id=str(self.dojo.id),
             status='active'
         ).exists():
-            raise ValidationError({'status': "Student already has an active subscription"})
+            raise ValidationError({'status': "Student already has an active membership"})
 
     def save(self, *args, **kwargs):
-        if not self.amount and self.subscription_product:
-            self.amount = self.subscription_product.amount
-        if not self.currency and self.subscription_product:
-            self.currency = self.subscription_product.currency
+        if not self.amount and self.membership_product:
+            self.amount = self.membership_product.amount
+        if not self.currency and self.membership_product:
+            self.currency = self.membership_product.currency
 
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"[{self.id}] {self.subscription_product.name} {self.student.name}"
+        return f"[{self.id}] {self.membership_product.name} {self.student.name}"
 
 
 class Category(models.Model):
@@ -100,13 +100,13 @@ class Category(models.Model):
 
 class Sale(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
-    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True, help_text='Subscription, Category or Event is required.')
+    membership = models.ForeignKey(Membership, on_delete=models.CASCADE, blank=True, null=True, help_text='membership, Category or Event is required.')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True, help_text='membership, Category or Event is required.')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True, help_text='membership, Category or Event is required.')
     date = models.DateField()
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    date_from = models.DateField(null=True, blank=True, help_text="Auto populated if type is subscription and it is empty")
-    date_to = models.DateField(null=True, blank=True, help_text="Auto populated if type is subscription and it is empty")
+    date_from = models.DateField(null=True, blank=True, help_text="Auto populated if type is membership and it is empty")
+    date_to = models.DateField(null=True, blank=True, help_text="Auto populated if type is membership and it is empty")
     #cost = MoneyField(max_digits=10, decimal_places=2, default_currency='AUD')
     amount = models.DecimalField(max_digits=6, decimal_places=2, help_text="Auto populated if empty")
     paid = models.DecimalField(max_digits=6, decimal_places=2)
@@ -117,18 +117,18 @@ class Sale(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
-        if not self.subscription and not self.event and not self.category:
+        if not self.membership and not self.event and not self.category:
             raise ValidationError(
                 {
-                    'subscription': 'Subscription, Category or Event is required.',
-                    'event': 'Subscription, Category or Event is required.',
-                    'category': 'Subscription, Category or Event is required.',
+                    'membership': 'membership, Category or Event is required.',
+                    'event': 'membership, Category or Event is required.',
+                    'category': 'membership, Category or Event is required.',
                  }
             )
 
     def __str__(self):
-        if self.subscription:
-            return f"[{self.id}] {self.student} {self.paid}/{self.amount}  {self.subscription.subscription_product.name} {self.date_from} {self.date_to} "
+        if self.membership:
+            return f"[{self.id}] {self.student} {self.paid}/{self.amount}  {self.membership.membership_product.name} {self.date_from} {self.date_to} "
         elif self.event:
             return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.event__name} "
         elif self.category:

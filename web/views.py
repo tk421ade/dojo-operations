@@ -112,13 +112,13 @@ def student_session_id(request, session_id):
 
     countdown_date = datetime.combine(session.date, session.time_from)
 
-    # make sure that the subscription is update.
+    # make sure that the membership is update.
     sales = Sale.objects.filter(
         dojo_id=student.dojo.pk,
         student_id=student.pk,
         date_from__lte=date.today(),
         date_to__gte=date.today(),
-        subscription__isnull=False
+        membership__isnull=False
     )
 
     renew_message = "Osu! Your membership is about to expire. Renew, recharge, and keep punching forward!"

@@ -25,8 +25,8 @@ class StudentAdmin(DojoFkFilterModelAdmin):
         extra_context['documentation'] = \
             f"""<b>help</b>: Students is an individual that practices karate. 
             They train in <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> by 
-            <a href="{reverse('admin:financial_subscription_changelist')}">subscribing</a> to a 
-            <a href="{reverse('admin:financial_subscriptionproduct_changelist')}">product</a>. """
+            <a href="{reverse('admin:financial_membership_changelist')}">subscribing</a> to a 
+            <a href="{reverse('admin:financial_membershipproduct_changelist')}">product</a>. """
         return super().changelist_view(request, extra_context)
 
 
