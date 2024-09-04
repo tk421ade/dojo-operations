@@ -62,7 +62,7 @@ class DojoConfigurationMiddleware:
 
     def __call__(self, request):
         session: SessionStore = request.session
-        if not session.has_key('dojo_id'):
+        if not session.has_key('dojo_id') or not session.get('dojo_id'):
             hostname = request.get_host().split(':')[0]
             dojo = Dojo.objects.filter(hostname=hostname).first()
             if dojo:
