@@ -13,7 +13,7 @@ from dojoconf.tests.utils import print_form_errors_from_response
 
 class DojoTest(TestCase):
 
-    # TODO fix bad dependency. 
+    # TODO fix bad dependency.
     # fixtures = ['fixtures/auth_groups_data.json']
 
     def setUp(self):

@@ -1,15 +1,11 @@
-import logging
 from datetime import date
 
-from dateutil.relativedelta import relativedelta
 from django.contrib import admin, messages
-from django.forms import TimeField
-from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path, reverse
 
 from dojoconf.admin import DojoFkFilterModelAdmin
-from .forms import AdminSessionForm
+from shodan.service import autocreate_sessions_for_dojo
 from .models import *
 
 
@@ -82,63 +78,20 @@ class SessionAdmin(DojoFkFilterModelAdmin):
 
     def autosession(self, request):
 
-        weekday_mapping = {
-            "monday": 0,
-            "tuesday": 1,
-            "wednesday": 2,
-            "thursday": 3,
-            "friday": 4,
-            "saturday": 5,
-            "sunday": 6
-        }
 
         # Your Python code here
-        dojo_id = request.session.get('dojo_id')
-        all_classes = Classes.objects.filter(dojo_id=dojo_id)
-        for classes in all_classes:
-            current_date = classes.interval.starting_at
-            if current_date < datetime.now().date():
-                current_date = datetime.now().date()
-            finishing_date = datetime.now().date() + relativedelta(months=1)
-            if classes.interval.finishing_at and finishing_date > classes.interval.finishing_at:
-                finishing_date = classes.interval.finishing_at
 
-            logging.warning(f"Calculating all working days from {current_date} to {finishing_date}")
-            days_of_week = classes.interval.days_of_week
-            already_exists_count = 0
-            new_count = 0
-            while current_date <= finishing_date:
-                for day in days_of_week:
-                    if day in weekday_mapping:
-                        if current_date.weekday() == weekday_mapping[day]:
-                            logging.warning(f"Creating Session")
+        dojos = Dojo.objects.filter(users__username=request.user.username)
 
-                            # check if the session already exists
-                            sessions = Session.objects.filter(
-                                date=current_date,
-                                dojo_id=classes.dojo.pk,
-                                classes_id=classes.pk
-                            )
-                            if sessions.exists():
-                                already_exists_count += 1
-                            else:
-                                new_count += 1
-                                Session.objects.create(
-                                    dojo_id=classes.dojo.pk,
-                                    classes_id=classes.pk,
-                                    date=current_date,
-                                )
-                    else:
-                        logging.warning(f"{day} not found at interval {classes.interval}")
+        if not dojos:
+            messages.warning(request, f"Nothing to process. Is user '{request.user.username}' associated to dojos?")
+            return redirect(reverse('admin:shodan_session_changelist'))
 
-                current_date += timedelta(days=1)
+        classes_processed = 0
+        for dojo in dojos:
+            classes_processed += autocreate_sessions_for_dojo(request, dojo.pk)
 
-            if new_count:
-                messages.success(request, f"Processing Classes {classes.name}: {new_count} sessions created from {current_date} to {finishing_date}")
-            if already_exists_count:
-                messages.success(request, f"Processing Classes {classes.name}: {already_exists_count} sessions already existed from {current_date} to {finishing_date}")
-
-        if not all_classes:
+        if not classes_processed:
             messages.warning(request, f"Nothing to process. Have you configured Classes yet ?")
 
         return redirect(reverse('admin:shodan_session_changelist'))
@@ -159,8 +112,9 @@ class AttendanceAdmin(DojoFkFilterModelAdmin):
         attendance_doc = ""
         if request.session.has_key('dojo_id'):
             dojo_id = request.session.get('dojo_id')
-            dojo = Dojo.objects.get(id=dojo_id)
-            attendance_doc = f"Students can log their attendance online via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
+            if dojo_id:
+                dojo = Dojo.objects.get(id=dojo_id)
+                attendance_doc = f"Students can log their attendance online via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
 
         extra_context['documentation'] = \
             f"""<b>Help</b>:  The Attendance feature tracks <a href="{reverse('admin:shodan_student_changelist')}">student</a> 
