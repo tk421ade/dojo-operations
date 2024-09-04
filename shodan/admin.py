@@ -23,10 +23,9 @@ class StudentAdmin(DojoFkFilterModelAdmin):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_student_changelist')}">students</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: Students is an individual that practices karate. 
-            They train in <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> by 
-            <a href="{reverse('admin:financial_membership_changelist')}">subscribing</a> to a 
-            <a href="{reverse('admin:financial_membershipproduct_changelist')}">product</a>. """
+            f"""<b>Help</b>: Students are individuals who practice karate. 
+            They access training <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> 
+            through a <a href="{reverse('admin:financial_membership_changelist')}">membership subscription</a>."""
         return super().changelist_view(request, extra_context)
 
 
@@ -64,15 +63,14 @@ class SessionAdmin(DojoFkFilterModelAdmin):
         self.queryset = combined_qs
 
         extra_context['documentation'] = \
-            f"""<b>help</b>: Session are training opportunities created from 
+            f"""<b>Help</b>: Sessions represent training opportunities derived from 
             <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> and 
             <a href="{reverse('admin:dojoconf_event_changelist')}">events</a>. 
-            You track the <a href="{reverse('admin:shodan_student_changelist')}">students</a> that 
-            <a href="{reverse('admin:shodan_attendance_changelist')}">attended</a> the session. 
-            <a href="{reverse('admin:shodan_student_changelist')}">Students</a> can register the 
-            <a href="{reverse('admin:shodan_attendance_changelist')}">attendance</a> automatically.  
-            Additionally, you can generate sessions automatically from <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> 
-            by clicking the button 'Create Sessions Automatically'. """
+            <a href="{reverse('admin:shodan_attendance_changelist')}">Attendance</a> tracking is available for each session, 
+            with registration options for <a href="{reverse('admin:shodan_student_changelist')}">students</a>. 
+            Furthermore, sessions can be automatically generated from <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> 
+            by using the 'Create Sessions Automatically' feature. """
+
         return super().changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -162,11 +160,12 @@ class AttendanceAdmin(DojoFkFilterModelAdmin):
         if request.session.has_key('dojo_id'):
             dojo_id = request.session.get('dojo_id')
             dojo = Dojo.objects.get(id=dojo_id)
-            attendance_doc = f"  Students can register the attendance via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
+            attendance_doc = f"Students can log their attendance online via <a href='https://{dojo.hostname}'>{dojo.hostname}</a>."
 
         extra_context['documentation'] = \
-            f"""<b>help</b>: Attendance tracks the <a href="{reverse('admin:shodan_student_changelist')}">students</a> 
-            that has trained in a <a href="{reverse('admin:shodan_session_changelist')}">session</a>. {attendance_doc}"""
+            f"""<b>Help</b>:  The Attendance feature tracks <a href="{reverse('admin:shodan_student_changelist')}">student</a> 
+            participation in <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>. {attendance_doc}"""
+
         return super().changelist_view(request, extra_context)
 
 # Admin-editable models

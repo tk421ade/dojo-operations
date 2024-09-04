@@ -75,9 +75,10 @@ class DojoAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: Dojo is the entity that organises 
-            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> and  
-            <a href="{reverse('admin:dojoconf_event_changelist')}">events</a> to train   
+            f"""<b>Help</b>: The Dojo is the entity responsible for organizing 
+            and hosting training 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> 
+            and <a href="{reverse('admin:dojoconf_event_changelist')}">events</a> for 
             <a href="{reverse('admin:shodan_student_changelist')}">students</a>."""
         return super().changelist_view(request, extra_context)
 
@@ -117,9 +118,12 @@ class IntervalAdmin(DojoFkFilterModelAdmin):
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
+        # <a href="{reverse('admin:dojoconf_classes_changelist')}">session</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: Intervals defines how often the <a href="{reverse('admin:dojoconf_classes_changelist')}">session</a> are taken (i.e Monday every week), 
-            and when the classes starts and finishes (i.e from Jan 15 to Dec 15)"""
+            f"""<b>Help</b>: Intervals determine the frequency of 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> (e.g., weekly on Mondays) 
+            and the start and end dates of <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> 
+            (e.g., January 15 to December 15)."""
         return super().changelist_view(request, extra_context)
 
 class AddressAdmin(DojoFkFilterModelAdmin):
@@ -132,9 +136,9 @@ class AddressAdmin(DojoFkFilterModelAdmin):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: Address has the location where the 
+            f"""<b>Help</b>: The address indicates the location of  
             <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> and 
-            the <a href="{reverse('admin:dojoconf_event_changelist')}">events</a> are imparted."""
+            <a href="{reverse('admin:dojoconf_event_changelist')}">events</a>."""
         return super().changelist_view(request, extra_context)
 
 
@@ -149,11 +153,12 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: A Karate Class is the template that creates scheduled 
+            f"""<b>Help</b>: A Karate Class template is used to create 
             <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>, 
-            defined by type and skill (i.e Adults, Kids, Beginners), how often it happens (aka <a href="{reverse('admin:dojoconf_interval_changelist')}">Class Interval</a>), 
-            where it happens (aka <a href="{reverse('admin:dojoconf_address_changelist')}">Address</a>)
-            and the duration. """
+            which are defined by their type and skill level (e.g., Adults, Kids, Beginners), 
+            frequency (<a href="{reverse('admin:dojoconf_interval_changelist')}">interval</a>), 
+            location (<a href="{reverse('admin:dojoconf_address_changelist')}">address</a>), 
+            and duration."""
         return super().changelist_view(request, extra_context)
 
 
@@ -167,9 +172,11 @@ class EventAdmin(DojoFkFilterModelAdmin):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
         extra_context['documentation'] = \
-            f"""<b>help</b>: Events complements the <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> training 
-            and happens a handful times on the year (i.e seminars and gradings). 
-            One event creates one or multiple <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>.   """
+            f"""<b>Help</b>: Events supplement the regular training <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a>
+             and are held occasionally 
+            throughout the year (e.g., seminars and gradings). 
+            An event may consist of one or multiple 
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>."""
         return super().changelist_view(request, extra_context)
 
 admin.site.register(Event, EventAdmin)
