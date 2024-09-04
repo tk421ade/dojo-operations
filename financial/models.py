@@ -39,7 +39,7 @@ class MembershipCustomFrequency(models.Model):
     frequency = models.TextField(help_text=mark_safe("""
     Each row is a date. You can add ranges (i.e '2024-08-01 to 2024-08-30' or single days (i.e 2024-08-01))<br>
     <br>
-    For example, to create a membership that will cover 4 payments, one per school holidays in 2024 in SA, 
+    For example, to create a membership that will cover 4 payments, one per school holidays in 2024 in SA,
     those will be the contents:<br>
     2024-01-29 to 2024-04-12<br>
     2024-04-29 to 2024-07-05<br>

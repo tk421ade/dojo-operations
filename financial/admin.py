@@ -21,7 +21,7 @@ class membershipProductAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'name', 'frequency', 'amount', 'currency')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
-    #inlines = [membershipCustomFrequencyInline]
+    inlines = [membershipCustomFrequencyInline]
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
