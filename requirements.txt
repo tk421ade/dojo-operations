@@ -10,4 +10,5 @@ django-timezone-field
 pytz
 gunicorn
 python-dateutil
+django-storages
 django-s3-storage
