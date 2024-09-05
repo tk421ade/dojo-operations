@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib import admin, messages
+from django.forms import Textarea
 from django.shortcuts import redirect
 from django.urls import path, reverse
 
@@ -9,12 +10,22 @@ from shodan.service import autocreate_sessions_for_dojo
 from .models import *
 
 
+
+class StudentDocumentInlineAdmin(admin.TabularInline):
+    model = StudentDocument
+    extra = 1
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'class': 'wide-textarea'})},
+    }
+
+
 class StudentAdmin(DojoFkFilterModelAdmin):
     list_display = ('id', 'dojo__name', 'name', 'status', 'kyu', 'dan')
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_display_links = ('id', 'name')
     list_filter = ('status',)
     search_fields = ('name',)
+    inlines = [StudentDocumentInlineAdmin]
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_student_changelist')}">students</a>
@@ -23,7 +34,6 @@ class StudentAdmin(DojoFkFilterModelAdmin):
             They access training <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> 
             through a <a href="{reverse('admin:financial_membership_changelist')}">membership subscription</a>."""
         return super().changelist_view(request, extra_context)
-
 
 class SessionAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/shodan/session/change_list.html'

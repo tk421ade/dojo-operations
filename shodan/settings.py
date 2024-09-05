@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+import logging
 import os
 from pathlib import Path
 
@@ -24,6 +25,7 @@ DJANGO_SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if DJANGO_SECRET_KEY:
     SECRET_KEY = DJANGO_SECRET_KEY
 else:
+    logging.warning("No custom SECRET_KEY defined. Using default values.")
     SECRET_KEY = 'django-insecure-)e3^$quf$tlu27go5thx06_r-9!8v@=9y-_d%hhpn743snq!&o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -36,6 +38,13 @@ else:
 
 ALLOWED_HOSTS = ['*']
 
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+
+if not AWS_S3_REGION_NAME or not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY or not AWS_STORAGE_BUCKET_NAME:
+    logging.warning("File storage not correctly configured: No AWS S3 values defined in settings.")
 
 # Application definition
 

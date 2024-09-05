@@ -1,7 +1,10 @@
+import os
+import random
 from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from storages.backends.s3boto3 import S3Boto3Storage
 
 from dojoconf.models import Dojo, Interval, Address, Classes, Event
 
@@ -19,12 +22,27 @@ class Student(models.Model):
     dan = models.IntegerField(null=True, blank=True)
     hours = models.IntegerField(blank=True, default=0, help_text='Total student training time (in minutes).')
     points = models.IntegerField(blank=True, default=0)
+    notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"[{self.id}] {self.name}"
+
+def _create_student_document_path(instance, filename):
+    return os.path.join(
+        str(f"dojo_{instance.student.dojo.id}"),
+        str(f"student_{instance.student.id}"),
+        str(f"file_{random.randint(1, 100)}_{filename}"),
+    )
+
+class StudentDocument(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    file = models.FileField(upload_to=_create_student_document_path, storage=S3Boto3Storage())
+    notes = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Session(models.Model):
