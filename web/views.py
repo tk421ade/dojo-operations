@@ -100,11 +100,19 @@ def student_session(request):
 def student_session_id(request, session_id):
 
     session: Session = Session.objects.get(id=session_id)
+    if not session:
+        messages.error(request, f'Sessions not found')
+        return redirect('student_login')
+
+    if not 'student_email' in request.session:
+        messages.error(request, f'Session expired. Please log in again.')
+        return redirect('student_login')
     student_email = request.session['student_email']
     student: Student = Student.objects.filter(email=student_email).first()
 
-    if not session:
-        messages.error(request, f'Sessions not found')
+    if not student:
+        messages.error(request, f'Student not found. Please log in again.')
+        return redirect('student_login')
 
     if session.event:
         address = session.event.address
