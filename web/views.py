@@ -163,9 +163,8 @@ def student_session_attendance(request):
     # is the student attendance already registered in this session ?
     attendance: Attendance = Attendance.objects.filter(student=student).first()
 
-    if attendance:
-        messages.error(request, f'You have already registered for this session')
-        return redirect('student_login')
+    if attendance:  # The student has already been registered for this session
+        return redirect('student_session_attendance_completed')
 
     timezone = pytz.timezone(class_session.dojo.timezone.key)
     combined_datetime = datetime.combine(class_session.date, class_session.time_from)

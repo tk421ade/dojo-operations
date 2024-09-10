@@ -25,7 +25,7 @@ DJANGO_SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if DJANGO_SECRET_KEY:
     SECRET_KEY = DJANGO_SECRET_KEY
 else:
-    logging.warning("No custom SECRET_KEY defined. Using default values.")
+    logging.warning("No custom Django SECRET_KEY defined. Using default values. The application is not secure.")
     SECRET_KEY = 'django-insecure-)e3^$quf$tlu27go5thx06_r-9!8v@=9y-_d%hhpn743snq!&o'
 
 # SECURITY WARNING: don't run with debug turned on in production!

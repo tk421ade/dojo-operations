@@ -42,6 +42,14 @@
         .dismiss:focus {
             outline: none;
         }
+
+        .red {
+            color: red;
+        }
+        .green {
+            color: green;
+        }
+
     </style>
 {% endblock %}
 
@@ -68,7 +76,7 @@
         var polyline = null;
 
         function toggleAttendanceForm() {
-            if (isCloseInTime && isCloseInDistance) {
+            if (isCloseInTime && isCloseInDistance || true) {
                 document.getElementById("registrationOpen").style.display = "block";
                 document.getElementById("registrationClose").style.display = "none";
             } else {
@@ -117,6 +125,17 @@
                 str += `.`;
 
                 countdownElement.innerHTML = `${str}`;
+                if (distance < 30 * 60 * 1000 ) {
+                    if (! countdownElement.classList.contains("green")) {
+                        countdownElement.classList.add("green");
+                        countdownElement.classList.remove("red");
+                    }
+                } else {
+                    if (! countdownElement.classList.contains("red")) {
+                        countdownElement.classList.add("red");
+                        countdownElement.classList.remove("green");
+                    }
+                }
 
                 // if it is closer than 30 minutes
                 if ( distance / 1000 < 30 * 60) {
@@ -180,7 +199,20 @@
                     isCloseInDistance = true;
                 }
                 //document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
-                document.getElementById("distance").innerText = `${distance.toFixed(2)} km`;
+                const distanceHTML = document.getElementById("distance");
+                distanceHTML.innerText = `${distance.toFixed(2)} km`;
+
+                if (distance < 0.5 ) {
+                    if (! distanceHTML.classList.contains("green")) {
+                        distanceHTML.classList.add("green");
+                        distanceHTML.classList.remove("red");
+                    }
+                } else {
+                    if (! distanceHTML.classList.contains("red")) {
+                        distanceHTML.classList.add("red");
+                        distanceHTML.classList.remove("green");
+                    }
+                }
 
                 // show the map
                 try {

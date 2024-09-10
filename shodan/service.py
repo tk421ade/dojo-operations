@@ -67,5 +67,5 @@ def autocreate_sessions_for_dojo(request, dojo_id):
         if already_exists_count:
             messages.success(request, f"Processing Classes {classes.name}: {already_exists_count} sessions already existed from {current_date} to {finishing_date}")
 
-        return len(all_classes)
+    return len(all_classes)
 
