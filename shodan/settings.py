@@ -35,6 +35,16 @@ if DJANGO_DEBUG:
 else:
     DEBUG = False
 
+# Unexpected exceptions and ERROR in production are send to a telegram bot
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+TELEGRAM_CHAT_TOKEN = os.environ.get('TELEGRAM_CHAT_TOKEN')
+
+if not DEBUG and not TELEGRAM_CHAT_ID:
+    logging.error("TELEGRAM_CHAT_ID missing; production ERRORS won't be notified to telegram")
+
+if not DEBUG and not TELEGRAM_CHAT_TOKEN:
+    logging.error("TELEGRAM_CHAT_TOKEN missing; production ERRORS won't be notified to telegram")
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -95,54 +105,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shodan.wsgi.application'
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'INFO',  # Set to INFO or lower to see logging.info messages
-#         },
-#         'shodan': {
-#         },
-#         'dojoconf': {
-#         },
-#         'financial': {
-#         }
-#         ,
-#         'web': {
-#         }
-#     }
-# }
-#
-# if DEBUG:
-#     LOGGING['loggers'] = {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'shodan': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'dojoconf': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'financial': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'web': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         }
-#     }
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+    },
+    "handlers": {
+        "telegram": {
+            "level": "ERROR",
+            'filters': ["require_debug_false"],
+            'class': 'shodan.logging_telegram.TelegramHandler',
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["telegram"],
+        },
+    },
+}
+
 
 
 # Database
