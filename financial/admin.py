@@ -150,6 +150,11 @@ class SaleAdmin(DojoFkFilterModelAdmin):
         """
             Add all pending memberships
         """
+        if request.user.is_superuser:
+            messages.error(request, f"You cannot update sales automatically from memberships because "
+                                    f"you are a super user.  ")
+            return redirect(reverse('admin:financial_sale_changelist'))
+
         dojos = Dojo.objects.filter(users__username=request.user.username)
         active_students_count = 0
         membership_product_count = 0
@@ -172,7 +177,6 @@ class SaleAdmin(DojoFkFilterModelAdmin):
         if not membership_product_count:
             messages.warning(request, f"Have you configured Products for memberships ?")
 
-        #return HttpResponse("Hello, World!")
         return redirect(reverse('admin:financial_sale_changelist'))
 
 
