@@ -27,6 +27,7 @@ class MembershipProduct(models.Model):
     amount = models.DecimalField(max_digits=6, decimal_places=2)
     currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
+    payment_instructions = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

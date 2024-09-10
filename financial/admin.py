@@ -25,6 +25,26 @@ class membershipProductAdmin(DojoFkFilterModelAdmin):
     search_fields = ('id', 'name',)
     inlines = [membershipCustomFrequencyInline]
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["dojo", "name", "frequency", "amount", "currency", "notes"],
+            },
+        ),
+        (
+            "Payments",
+            {
+                "description": "Payment instructions will be visible when students are registering the attendance "
+                               "for a session and if the membership has expired. "
+                               "It should contain information on how to perform the payment "
+                               "(i.e transfer amount to this bank account'). "
+                ,
+                "classes": ["collapse"],
+                "fields": ["payment_instructions"],
+            },
+        ),
+    ]
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_student_changelist')}">students</a>

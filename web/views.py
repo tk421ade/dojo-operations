@@ -1,5 +1,6 @@
 import urllib.parse
 from datetime import datetime, date, timedelta
+from enum import member
 from typing import Any
 
 import pytz
@@ -9,7 +10,7 @@ from django.contrib.sessions.backends.cache import SessionStore
 from django.shortcuts import render, redirect
 
 from dojoconf.models import Dojo
-from financial.models import Sale
+from financial.models import Sale, MembershipProduct, Membership
 from shodan.models import Student, Session, Attendance
 from web.forms import EmailForm
 
@@ -121,12 +122,14 @@ def student_session_id(request, session_id):
         membership__isnull=False
     )
 
-    renew_message = "Osu! Your membership is about to expire. Renew, recharge, and keep punching forward!"
-
-    if not len(sales):
-        messages.error(request, renew_message)
-    elif sales[0].amount > sales[0].paid:
-        messages.error(request, renew_message)
+    membership = None
+    payment_required = False
+    if not len(sales): # not active subscription
+        membership = Membership.objects.filter(student_id=student.pk).first()
+        payment_required = True
+    elif sales[0].amount < sales[0].paid:  # not all the amount has been paid
+        payment_required = True
+        membership = MembershipProduct.objects.filter(student_id=student.pk).first()
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     return render(request, 'student/student_session_attendance.html', {
@@ -135,6 +138,8 @@ def student_session_id(request, session_id):
         'address':address,
         'countdown_date': countdown_date.isoformat(),
         'dojo': dojo,
+        'membership': membership,
+        'payment_required': payment_required
 
     })
 def student_session_attendance(request):

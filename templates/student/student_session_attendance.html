@@ -76,7 +76,7 @@
         var polyline = null;
 
         function toggleAttendanceForm() {
-            if (isCloseInTime && isCloseInDistance || true) {
+            if (isCloseInTime && isCloseInDistance) {
                 document.getElementById("registrationOpen").style.display = "block";
                 document.getElementById("registrationClose").style.display = "none";
             } else {
@@ -291,6 +291,28 @@
                 <span class="message">{{ message }}</span>
             </div>
         {% endfor %}
+    {% endif %}
+
+    {% if payment_required %}
+        <div class="notification error" id="error-notification">
+            <span class="message">
+                <p>Osu! Your membership is about to expire. Renew, recharge, and keep punching forward!</p>
+                {% if not membership %}
+                    <p>Please contact your dojo to subscribe to a membership.<p>
+                {% elif membership and membership.membership_product %}
+                    <p>
+                        Membership name: {{ membership.membership_product.name }}.<br>
+                        Frequency: {{ membership.membership_product.frequency|capfirst }}.<br>
+                        Amount: {{ membership.membership_product.amount }} {{ membership.membership_product.currency }}.<br>
+                        {% if membership.membership_product.payment_instructions %}
+                            Payment Instructions: {{ membership.membership_product.payment_instructions }}
+                        {% endif %}
+                    <p>
+
+                {% endif %}
+
+            </span>
+        </div>
     {% endif %}
 
     <h2>{{ session.name }}</h2>
