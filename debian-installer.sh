@@ -21,7 +21,13 @@ After=network.target
 
 [Service]
 Type=notify
-Environment="DJANGO_SECRET_KEY=yekq9_@huylo_2zhryv62h*@+rws+w*&j@7r)n!8%fl+wfwpvi"
+Environment="DJANGO_SECRET_KEY="
+Environment="AWS_ACCESS_KEY_ID="
+Environment="AWS_S3_REGION_NAME="
+Environment="AWS_SECRET_ACCESS_KEY="
+Environment="AWS_STORAGE_BUCKET_NAME="
+Environment="TELEGRAM_CHAT_ID="
+Environment="TELEGRAM_CHAT_TOKEN="
 # the specific user that our service will run as
 User=www-data
 Group=www-data
