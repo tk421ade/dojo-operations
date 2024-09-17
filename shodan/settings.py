@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     'financial',
     'dojoconf',
     'djmoney',
+    'phonenumber_field',
+
 ]
 
 MIDDLEWARE = [

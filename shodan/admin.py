@@ -1,7 +1,8 @@
 from datetime import date
 
+from django import forms
 from django.contrib import admin, messages
-from django.forms import Textarea
+from django.forms import Textarea, DateInput
 from django.shortcuts import redirect
 from django.urls import path, reverse
 
@@ -26,6 +27,9 @@ class StudentAdmin(DojoFkFilterModelAdmin):
     list_filter = ('status',)
     search_fields = ('name',)
     inlines = [StudentDocumentInlineAdmin]
+    formfield_overrides = {
+        models.DateField: {'widget': DateInput}
+    }
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_student_changelist')}">students</a>
@@ -34,6 +38,12 @@ class StudentAdmin(DojoFkFilterModelAdmin):
             They access training <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> 
             through a <a href="{reverse('admin:financial_membership_changelist')}">membership subscription</a>."""
         return super().changelist_view(request, extra_context)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form =  super().get_form(request, obj, **kwargs)
+        form.base_fields['date_of_birth'].widget.attrs['placeholder'] = "YYYY-MM-DD"
+        return form
+
 
 class SessionAdmin(DojoFkFilterModelAdmin):
     change_list_template = 'admin/shodan/session/change_list.html'

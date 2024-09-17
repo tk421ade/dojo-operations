@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from phonenumber_field.formfields import PhoneNumberField
 from storages.backends.s3boto3 import S3Boto3Storage
 
 from dojoconf.models import Dojo, Interval, Address, Classes, Event
@@ -17,11 +18,17 @@ class Student(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     status = models.CharField(max_length=9, choices=STATUS)
     name = models.CharField(max_length=200)
-    email = models.EmailField(max_length=200)
+    date_of_birth = models.DateField(blank=True, null=True)
+    email = models.EmailField(max_length=200, blank=True, null=True)
+    mobile = PhoneNumberField()
+    address1 = models.CharField(max_length=200, blank=True, null=True)
+    address2 = models.CharField(max_length=200, blank=True, null=True)
     kyu = models.IntegerField(null=True, blank=True)
     dan = models.IntegerField(null=True, blank=True)
     hours = models.IntegerField(blank=True, default=0, help_text='Total student training time (in minutes).')
     points = models.IntegerField(blank=True, default=0)
+    medical_conditions = models.TextField(null=True, blank=True)
+    emergency_contact = models.TextField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)

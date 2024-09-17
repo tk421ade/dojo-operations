@@ -13,3 +13,4 @@ python-dateutil
 django-storages
 django-s3-storage
 python-telegram-bot
+django-phonenumber-field[phonenumberslite]
