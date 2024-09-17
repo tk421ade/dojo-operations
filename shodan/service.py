@@ -25,15 +25,15 @@ def autocreate_sessions_for_dojo(request, dojo_id):
 
     all_classes = Classes.objects.filter(dojo_id=dojo_id)
     for classes in all_classes:
-        current_date = classes.interval.starting_at
+        current_date = classes.starting_at
         if current_date < datetime.now().date():
             current_date = datetime.now().date()
         finishing_date = datetime.now().date() + relativedelta(months=1)
-        if classes.interval.finishing_at and finishing_date > classes.interval.finishing_at:
-            finishing_date = classes.interval.finishing_at
+        if classes.finishing_at and finishing_date > classes.finishing_at:
+            finishing_date = classes.finishing_at
 
         logging.warning(f"Calculating all working days from {current_date} to {finishing_date}")
-        days_of_week = classes.interval.days_of_week
+        days_of_week = classes.days_of_week
         already_exists_count = 0
         new_count = 0
         while current_date <= finishing_date:
@@ -58,7 +58,7 @@ def autocreate_sessions_for_dojo(request, dojo_id):
                                 date=current_date,
                             )
                 else:
-                    logging.warning(f"{day} not found at interval {classes.interval}")
+                    logging.warning(f"{day} not found at interval {classes}")
 
             current_date += timedelta(days=1)
 

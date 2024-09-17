@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
 from django.urls import reverse
 
-from dojoconf.models import Dojo, Interval, Address, Classes, Event
+from dojoconf.models import Dojo, Address, Classes, Event
 
 
 class DojoFkFilterModelAdmin(admin.ModelAdmin):
@@ -110,22 +110,6 @@ class DojoAdmin(admin.ModelAdmin):
             session['user_dojos'] = dojo_ids
 
 
-class IntervalAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name', 'type', 'days_of_week', 'starting_at', 'finishing_at')
-    list_display_links = ('id', 'name')
-    search_fields = ('id', 'name',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        # <a href="{reverse('admin:shodan_session_changelist')}">session</a>
-        # <a href="{reverse('admin:dojoconf_classes_changelist')}">session</a>
-        extra_context['documentation'] = \
-            f"""<b>Help</b>: Intervals determine the frequency of 
-            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> (e.g., weekly on Mondays) 
-            and the start and end dates of <a href="{reverse('admin:dojoconf_classes_changelist')}">classes</a> 
-            (e.g., January 15 to December 15)."""
-        return super().changelist_view(request, extra_context)
-
 class AddressAdmin(DojoFkFilterModelAdmin):
     help_text = "Hello world"
     list_display = ('id', 'name', 'street', 'city', 'state')
@@ -141,10 +125,8 @@ class AddressAdmin(DojoFkFilterModelAdmin):
             <a href="{reverse('admin:dojoconf_event_changelist')}">events</a>."""
         return super().changelist_view(request, extra_context)
 
-
-
 class ClassesAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name', 'address__name', 'interval__name', 'time_from', 'time_to')
+    list_display = ('id', 'name', 'address__name', 'time_from', 'time_to')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
@@ -181,6 +163,5 @@ class EventAdmin(DojoFkFilterModelAdmin):
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(Dojo, DojoAdmin)
-admin.site.register(Interval, IntervalAdmin)
 admin.site.register(Address, AddressAdmin)
 admin.site.register(Classes, ClassesAdmin)

@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from storages.backends.s3boto3 import S3Boto3Storage
 
-from dojoconf.models import Dojo, Interval, Address, Classes, Event
+from dojoconf.models import Dojo, Address, Classes, Event
 
 
 class Student(models.Model):
