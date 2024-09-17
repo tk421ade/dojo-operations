@@ -68,9 +68,7 @@ INSTALLED_APPS = [
     'shodan',
     'financial',
     'dojoconf',
-    'djmoney',
-    'phonenumber_field',
-
+    'djmoney'
 ]
 
 MIDDLEWARE = [
