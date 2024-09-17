@@ -138,7 +138,7 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
             f"""<b>Help</b>: A Karate Class template is used to create 
             <a href="{reverse('admin:shodan_session_changelist')}">sessions</a>, 
             which are defined by their type and skill level (e.g., Adults, Kids, Beginners), 
-            frequency (<a href="{reverse('admin:dojoconf_interval_changelist')}">interval</a>), 
+            frequency, 
             location (<a href="{reverse('admin:dojoconf_address_changelist')}">address</a>), 
             and duration."""
         return super().changelist_view(request, extra_context)
