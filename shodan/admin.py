@@ -42,6 +42,7 @@ class StudentAdmin(DojoFkFilterModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         form =  super().get_form(request, obj, **kwargs)
         form.base_fields['date_of_birth'].widget.attrs['placeholder'] = "YYYY-MM-DD"
+        form.base_fields['start'].widget.attrs['placeholder'] = "YYYY-MM-DD"
         return form
 
 
