@@ -37,6 +37,14 @@ class StudentAdmin(DojoFkFilterModelAdmin):
             f"""<b>Help</b>: Students are individuals who practice karate. 
             They access training <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> 
             through a <a href="{reverse('admin:financial_membership_changelist')}">membership subscription</a>."""
+
+        # enable 'status: active' by default (TODO disables listing all students, minor inconvenient)
+        if not request.GET:
+            q = request.GET.copy()
+            q['status__exact'] = 'active'  # assuming 'active' is the value for active students
+            request.GET = q
+            request.META['QUERY_STRING'] = request.GET.urlencode()
+
         return super().changelist_view(request, extra_context)
 
     def get_form(self, request, obj=None, **kwargs):
