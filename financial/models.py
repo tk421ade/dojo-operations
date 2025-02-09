@@ -67,10 +67,18 @@ class Membership(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
-        if self.student.membership_set.filter(
-            dojo_id=str(self.dojo.id),
-            status='active'
-        ).exists():
+        if self.pk:  # Check if the instance already exists
+            existing_memberships = self.student.membership_set.filter(
+                dojo_id=str(self.dojo.id),
+                status='active'
+            ).exclude(pk=self.pk)  # Exclude the current instance
+        else:
+            existing_memberships = self.student.membership_set.filter(
+                dojo_id=str(self.dojo.id),
+                status='active'
+            )
+
+        if existing_memberships.exists():
             raise ValidationError({'status': "Student already has an active membership"})
 
     def save(self, *args, **kwargs):
