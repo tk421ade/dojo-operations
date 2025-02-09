@@ -139,9 +139,9 @@ class Sale(models.Model):
         if self.membership:
             return f"[{self.id}] {self.student} {self.paid}/{self.amount}  {self.membership.membership_product.name} {self.date_from} {self.date_to} "
         elif self.event:
-            return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.event__name} "
+            return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.event.name} "
         elif self.category:
-            return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.category__name} "
+            return f"[{self.id}] {self.student} {self.paid}/{self.amount} {self.category.name} "
         else:
             return f"[{self.id}] {self.student} {self.paid}/{self.amount}"
 
