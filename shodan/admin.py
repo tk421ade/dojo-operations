@@ -27,9 +27,10 @@ class StudentAdmin(DojoFkFilterModelAdmin):
     list_filter = ('status',)
     search_fields = ('name',)
     inlines = [StudentDocumentInlineAdmin]
-    formfield_overrides = {
-        models.DateField: {'widget': DateInput}
-    }
+    # customers wants the date widget the signing up an student
+    # formfield_overrides = {
+    #     models.DateField: {'widget': DateInput}
+    # }
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         # <a href="{reverse('admin:shodan_student_changelist')}">students</a>
