@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
 
+{% block container_class %}!py-3 lg:!py-4{% endblock %}
+{% block header_class %}!mb-3{% endblock %}
+
 {% block content_header %}
     {% if locked %}
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl text-red-600 dark:text-red-400">Kiosk Locked</h1>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl text-red-600 dark:text-red-400">Kiosk Locked</h1>
     {% else %}
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">View Attendees</h1>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">View Attendees</h1>
     {% endif %}
-    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">{{ dojo.name }}</p>
+    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ dojo.name }}</p>
 {% endblock %}
 
 {% block content %}
-    <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+    <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
         {% if messages %}
             {% for message in messages %}
                 <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">

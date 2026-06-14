@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 
+{% block container_class %}!py-3 lg:!py-4{% endblock %}
+{% block header_class %}!mb-3{% endblock %}
+
 {% block content_header %}
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Select Your Class</h1>
-    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">{{ student.name }} &middot; {{ dojo.name }}</p>
+    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Select Your Class</h1>
+    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ student.name }} &middot; {{ dojo.name }}</p>
 {% endblock %}
 
 {% block content %}
-    <div class="space-y-4 py-4">
+    <div class="space-y-3 py-1">
         {% for session in sessions %}
             <form method="post" action="/kiosk/attendance/session/{{ session.id }}" class="block">
                 {% csrf_token %}
@@ -24,7 +27,7 @@
         {% endfor %}
     </div>
 
-    <div class="mt-6 text-center">
+    <div class="mt-3 text-center">
         <a href="/kiosk/attendance" class="text-sm text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             &larr; Back
         </a>

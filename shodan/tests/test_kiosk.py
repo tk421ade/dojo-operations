@@ -271,6 +271,16 @@ class KioskAttendanceTest(TestCase):
         self.assertEqual(response.url, reverse('kiosk_register'))
         self.assertEqual(Attendance.objects.filter(student=self.student).count(), 1)
 
+    def test_kiosk_home_clears_waiver_pending_email(self):
+        self._set_kiosk_session()
+        self.client.post(reverse('kiosk_attendance'), {'email': 'student@test.com'})
+        self.assertEqual(
+            self.client.session.get('kiosk_waiver_pending_email'),
+            'student@test.com',
+        )
+        self.client.get(reverse('kiosk_home'))
+        self.assertNotIn('kiosk_waiver_pending_email', self.client.session)
+
 
 class KioskRegisterTest(TestCase):
     fixtures = ['fixtures/auth_test_data.json', 'fixtures/dojoconf_test_data.json']

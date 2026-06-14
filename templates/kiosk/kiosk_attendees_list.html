@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
 
+{% block container_class %}!py-3 lg:!py-4{% endblock %}
+{% block header_class %}!mb-3{% endblock %}
+
 {% block content_header %}
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Today's Attendees</h1>
-    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">{{ session.name }} &middot; {{ dojo.name }}</p>
+    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Today's Attendees</h1>
+    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ session.name }} &middot; {{ dojo.name }}</p>
 {% endblock %}
 
 {% block content %}

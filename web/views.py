@@ -495,6 +495,8 @@ def kiosk_home(request):
     if not _kiosk_mode_active(request):
         return redirect('landing_page')
 
+    request.session.pop('kiosk_waiver_pending_email', None)
+
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     has_sessions = Session.objects.filter(dojo_id=dojo.id, date=date.today()).exists()
     return render(request, 'kiosk/kiosk_home.html', {'dojo': dojo, 'has_sessions': has_sessions})

@@ -319,7 +319,7 @@ U8.5 - **Responsive design**: all pages are mobile-first. Students primarily acc
 
 U8.6 - **Accent colour** is red (`red-600` / `hover:red-700`) for primary actions (submit buttons, active links, focus rings). Secondary actions use gray. Success states use green. Warning states use amber.
 
-U8.7 - **Card-based layout**: forms and content sections are wrapped in rounded cards (`rounded-xl border shadow-sm`) with light/dark variants. The page is constrained to `max-w-4xl` with consistent padding.
+U8.7 - **Card-based layout**: forms and content sections are wrapped in rounded cards (`rounded-xl border shadow-sm`) with light/dark variants. The page is constrained to `max-w-4xl` with consistent padding. Kiosk templates override this padding via `{% block container_class %}` and `{% block header_class %}` blocks to achieve a compact, no-scroll layout on tablets.
 
 U8.8 - **Form inputs**: styled via the global Tailwind layer in `base.html`. All inputs have rounded borders, focus rings (red), and dark mode backgrounds. Labels are above inputs, using `text-sm font-medium`.
 
@@ -333,7 +333,7 @@ U8.11 - **Dojo logo**: when a `Dojo.logo` is uploaded, it is displayed on all pu
 
 ## Overview
 
-U9.1 - Kiosk Mode transforms the student-facing landing page into a self-service iPad interface for use at the dojo during class. It enables two flows: New Student Registration and Attendance Registration — both optimized for touch and shared-device use.
+U9.1 - Kiosk Mode transforms the student-facing landing page into a self-service tablet interface (Samsung Galaxy Tab / iPad) for use at the dojo during class. It enables two flows: New Student Registration and Attendance Registration — both optimized for touch and shared-device use.
 
 ## Activation & Deactivation
 
@@ -344,8 +344,9 @@ U9.5 - Deactivation is via the same PIN. A small "Exit Kiosk Mode" link on the k
 
 ## Kiosk Home
 
-U9.6 - The kiosk home page (`/kiosk`) shows two large touch-friendly buttons: "New Student" (links to `/kiosk/register`) and "Register Attendance" (links to `/kiosk/attendance`). A subtle "Exit Kiosk Mode" link is at the bottom.
+U9.6 - The kiosk home page (`/kiosk`) shows touch-friendly buttons: "New Student" (links to `/kiosk/register`) and "Register Attendance" (links to `/kiosk/attendance`) arranged in a responsive grid (side-by-side on tablet, stacked on phone). A subtle "Exit Kiosk Mode" link is at the bottom. The entire page must fit within the viewport without scrolling on a tablet (Samsung Galaxy Tab landscape).
 U9.7 - If kiosk mode is not active, `/kiosk` redirects to the landing page.
+U9.7a - **Compact layout**: All kiosk templates use reduced container padding and header margins via `{% block container_class %}` and `{% block header_class %}` hooks in `base.html`. This ensures the kiosk home, PIN entry, attendance, and success screens fit without scrolling on tablet displays. The waiver registration form (`/kiosk/register`) is exempt as it is inherently a long form requiring scroll.
 
 ## New Student Registration
 
@@ -373,6 +374,7 @@ U9.21a - **Waiver after attendance**: If the student has **no `StudentWaiver`**,
   - The page title changes to "Complete Your Waiver" instead of "New Student Registration".
   - The email field is pre-filled and read-only behaviour is not enforced (student can still edit it).
 U9.21b - After completing the waiver from the post-attendance flow, the student is redirected to `/kiosk/register/success` which displays "Waiver Submitted!" (instead of "Welcome to {dojo.name}!") and auto-redirects to the kiosk home after 5 seconds. The `kiosk_waiver_pending_email` session key is cleared.
+U9.21c - **Pending waiver state cleanup**: The `kiosk_waiver_pending_email` session key is cleared whenever the kiosk home page (`/kiosk`) is loaded. This prevents stale waiver-pending state from leaking across different users on a shared kiosk device (e.g., a student walks away after attendance without completing the waiver; the next person clicking "New Student" must see a clean registration form).
 
 ## StudentWaiver Model
 
