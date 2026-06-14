@@ -18,6 +18,9 @@ migrations:
 	./venv/bin/python3 manage.py makemigrations dojoconf
 	./venv/bin/python3 manage.py migrate
 
+migrate:
+	./venv/bin/python3 manage.py migrate
+
 
 create_test_admin_user:
 	./venv/bin/python3 manage.py createsuperuser --username admin --email admin@example.com
@@ -50,6 +53,13 @@ restart_gunicorn:
 	systemctl restart gunicorn.service
 
 update_project: update prepare collectstatic restart_gunicorn
+
+db-backup:
+	mkdir -p backups
+	sudo -u postgres pg_dump shodan > backups/shodan_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "Database backup saved to backups/"
+
+deploy: db-backup update_project migrate restart_gunicorn
 
 clearsessions:
 	./venv/bin/python manage.py clearsessions
