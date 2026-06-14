@@ -12,7 +12,7 @@ from shodan.service import get_or_create_today_sessions, WEEKDAY_NAMES
 MINIMAL_PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
 
-def _valid_waiver_form_data(email='newstudent@test.com', dob='2000-01-15'):
+def _valid_waiver_form_data(email='newstudent@test.com', dob='15/01/2000'):
     return {
         'email2': '',
         'first_name': 'John',
@@ -37,7 +37,7 @@ def _valid_waiver_form_data(email='newstudent@test.com', dob='2000-01-15'):
         'allergies': '',
         'applicant_signature_data': MINIMAL_PNG_DATA_URL,
         'applicant_name': 'John Test',
-        'applicant_date': date.today().isoformat(),
+        'applicant_date': date.today().strftime('%d/%m/%Y'),
         'guardian_signature_data': '',
         'guardian_name': '',
         'guardian_date': '',

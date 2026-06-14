@@ -4,6 +4,7 @@
 {% block header_class %}!mb-4{% endblock %}
 
 {% block style %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 <style type="text/tailwindcss">
     .errorlist {
         @apply mt-1 text-sm text-red-600 dark:text-red-400;
@@ -103,6 +104,46 @@
             background: rgb(75 85 99);
             border-color: rgb(75 85 99);
             color: #fff;
+        }
+    }
+
+    /* Flatpickr dark mode */
+    @media (prefers-color-scheme: dark) {
+        .flatpickr-calendar {
+            background: #1f2937;
+            border-color: #374151;
+            color: #d1d5db;
+            box-shadow: none;
+        }
+        .flatpickr-calendar .flatpickr-month,
+        .flatpickr-calendar span.flatpickr-weekday {
+            color: #d1d5db;
+            fill: #d1d5db;
+        }
+        .flatpickr-calendar .flatpickr-monthDropdown-months {
+            background: #1f2937;
+        }
+        .flatpickr-calendar .flatpickr-current-month input.cur-year {
+            color: #d1d5db;
+        }
+        .flatpickr-calendar .flatpickr-day {
+            color: #d1d5db;
+        }
+        .flatpickr-calendar .flatpickr-day:hover {
+            background: #374151;
+            border-color: #374151;
+        }
+        .flatpickr-calendar .flatpickr-day.prevMonthDay,
+        .flatpickr-calendar .flatpickr-day.nextMonthDay {
+            color: #6b7280;
+        }
+        .flatpickr-calendar .flatpickr-day.today {
+            border-color: #dc2626;
+        }
+        .flatpickr-calendar .flatpickr-day.selected,
+        .flatpickr-calendar .flatpickr-day.selected:hover {
+            background: #dc2626;
+            border-color: #dc2626;
         }
     }
 </style>
@@ -452,6 +493,7 @@
 {% endblock %}
 
 {% block js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.0.2/dist/signature_pad.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -526,7 +568,12 @@ document.addEventListener('DOMContentLoaded', function() {
             guardianSection.classList.add('hidden');
             return;
         }
-        var dob = new Date(dobInput.value);
+        var parts = dobInput.value.split('/');
+        if (parts.length !== 3) {
+            guardianSection.classList.add('hidden');
+            return;
+        }
+        var dob = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
         var today = new Date();
         var age = today.getFullYear() - dob.getFullYear();
         var monthDiff = today.getMonth() - dob.getMonth();
@@ -540,11 +587,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    var dobInput = document.querySelector('input[name="date_of_birth"]');
-    if (dobInput) {
-        dobInput.addEventListener('change', toggleGuardianSection);
-        toggleGuardianSection();
-    }
+    var fpCommon = {
+        dateFormat: 'd/m/Y',
+        disableMobile: true,
+        allowInput: true,
+    };
+    flatpickr('input[name="date_of_birth"]', Object.assign({}, fpCommon, {
+        onChange: function() { toggleGuardianSection(); }
+    }));
+    flatpickr('input[name="applicant_date"]', fpCommon);
+    flatpickr('input[name="guardian_date"]', fpCommon);
+
+    toggleGuardianSection();
 
     function toggleSpecify(radioName, wrapId) {
         var radios = document.querySelectorAll('input[name="' + radioName + '"]');

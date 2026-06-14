@@ -63,7 +63,11 @@ PHONE_VALIDATOR = RegexValidator(
     r'^[\d\s\+\-\(\)]{6,20}$',
     'Enter a valid phone number (digits, spaces, +, -, brackets).')
 
-DATE_WIDGET = forms.DateInput(attrs={'type': 'date'})
+DATE_WIDGET = forms.DateInput(
+    attrs={'placeholder': 'dd/mm/yyyy', 'autocomplete': 'off'},
+    format='%d/%m/%Y',
+)
+DATE_INPUT_FORMATS = ['%d/%m/%Y', '%Y-%m-%d']
 PHONE_WIDGET = forms.TextInput(attrs={'type': 'tel'})
 
 
@@ -89,7 +93,8 @@ class EventWaiverForm(forms.Form):
     phone = forms.CharField(max_length=50, label='Phone number', validators=[PHONE_VALIDATOR], widget=PHONE_WIDGET)
     email = forms.EmailField(max_length=200, label='Email')
     date_of_birth = forms.DateField(
-        required=True, label='Date of birth', widget=DATE_WIDGET)
+        required=True, label='Date of birth', widget=DATE_WIDGET,
+        input_formats=DATE_INPUT_FORMATS)
     current_grade = forms.ChoiceField(choices=GRADE_CHOICES, required=False, label='Current grade')
 
     # Emergency contact
@@ -133,12 +138,14 @@ class EventWaiverForm(forms.Form):
         widget=forms.HiddenInput(), required=True,
         error_messages={'required': 'Applicant signature is required.'})
     applicant_name = forms.CharField(max_length=200, label='Name (applicant)')
-    applicant_date = forms.DateField(label='Date', initial=date.today, widget=DATE_WIDGET)
+    applicant_date = forms.DateField(label='Date', initial=date.today, widget=DATE_WIDGET,
+                                      input_formats=DATE_INPUT_FORMATS)
 
     guardian_signature_data = forms.CharField(
         widget=forms.HiddenInput(), required=False)
     guardian_name = forms.CharField(max_length=200, required=False, label='Name (parent or legal guardian)')
-    guardian_date = forms.DateField(required=False, label='Date', widget=DATE_WIDGET)
+    guardian_date = forms.DateField(required=False, label='Date', widget=DATE_WIDGET,
+                                     input_formats=DATE_INPUT_FORMATS)
 
     def clean(self):
         cleaned_data = super().clean()

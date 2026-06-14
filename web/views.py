@@ -32,7 +32,11 @@ def landing_page(request):
         return render(request, 'bad_configuration.html', {'hostname': hostname})
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
-    waiver_events = Event.objects.filter(dojo_id=dojo.id, requires_waiver=True)
+    waiver_events = Event.objects.filter(
+        dojo_id=dojo.id,
+        requires_waiver=True,
+        session__date__gte=date.today(),
+    ).distinct()
     return render(request, 'landing_page.html', {'dojo': dojo, 'waiver_events': waiver_events})
 
 
@@ -212,7 +216,11 @@ def event_waiver_list(request):
         return render(request, 'bad_configuration.html', {'hostname': hostname})
 
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
-    waiver_events = Event.objects.filter(dojo_id=dojo.id, requires_waiver=True)
+    waiver_events = Event.objects.filter(
+        dojo_id=dojo.id,
+        requires_waiver=True,
+        session__date__gte=date.today(),
+    ).distinct()
 
     if len(waiver_events) == 0:
         return redirect('landing_page')
@@ -238,6 +246,11 @@ def event_waiver(request, event_id):
         messages.error(request, 'Event not found.')
         return redirect('landing_page')
 
+    future_session = Session.objects.filter(
+        event_id=event_id,
+        date__gte=date.today(),
+    ).order_by('date', 'time_from').first()
+
     if request.method == 'POST':
         form = EventWaiverForm(request.POST)
 
@@ -254,7 +267,8 @@ def event_waiver(request, event_id):
             if existing:
                 messages.info(request, 'You have already signed the waiver for this event.')
                 return render(request, 'student/event_waiver.html', {
-                    'form': form, 'dojo': dojo, 'event': event, 'already_submitted': True
+                    'form': form, 'dojo': dojo, 'event': event, 'already_submitted': True,
+                    'future_session': future_session,
                 })
 
             # Build questionnaire responses dict
@@ -321,7 +335,8 @@ def event_waiver(request, event_id):
         form = EventWaiverForm()
 
     return render(request, 'student/event_waiver.html', {
-        'form': form, 'dojo': dojo, 'event': event
+        'form': form, 'dojo': dojo, 'event': event,
+        'future_session': future_session,
     })
 
 

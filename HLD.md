@@ -203,7 +203,11 @@ U7.4 - The waiver form captures: personal information (name, address, phone, ema
 
 U7.5 - The waiver terms text, instructor names, and venue information are a fixed template hardcoded in the template (not configurable per event in the admin).
 
-U7.5.1 - An `Event` has a `requires_waiver` boolean field (default False). When enabled, an "Events" button appears on the dojo's landing page. If only one event has `requires_waiver=True`, the button links directly to `/event/<event_id>/waiver`. If multiple events have waivers enabled, the button links to `/event/waiver/list` (an event picker page). The admin controls this flag per event.
+U7.5.1 - An `Event` has a `requires_waiver` boolean field (default False). When enabled **and at least one future `Session` (date >= today) exists for the event**, an "Events" button appears on the dojo's landing page. If only one such event exists, the button links directly to `/event/<event_id>/waiver`. If multiple such events exist, the button links to `/event/waiver/list` (an event picker page). Events with `requires_waiver=True` but no future session do not trigger the "Events" button. The `event_waiver_list` view applies the same future-session filter for consistency. The admin controls this flag per event.
+
+U7.5.2 - The waiver form page (`/event/<event_id>/waiver`) displays the nearest future session's date, start time, and end time below the event name (as styled pill badges). If the event has no future session scheduled, an amber informational message ("This event does not have a scheduled session yet.") is displayed instead. Time information is sourced from the `Session` model (the `Event` model itself has no time fields).
+
+U7.5.3 - All date fields on public-facing forms (waiver, kiosk registration) use **dd/mm/yyyy** format (Australian convention). The native HTML5 `<input type="date">` is **not** used because its display format is controlled by the browser locale and cannot be overridden server-side. Instead, date fields use a text input with Flatpickr (JS date picker) configured with `dateFormat: 'd/m/Y'` and `disableMobile: true`. Server-side parsing accepts both `%d/%m/%Y` and `%Y-%m-%d` for backward compatibility.
 
 ## Digital Signatures
 
