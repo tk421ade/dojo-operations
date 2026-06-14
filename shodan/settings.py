@@ -35,26 +35,15 @@ if DJANGO_DEBUG:
 else:
     DEBUG = False
 
-# Unexpected exceptions and ERROR in production are send to a telegram bot
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
-TELEGRAM_CHAT_TOKEN = os.environ.get('TELEGRAM_CHAT_TOKEN')
+# Unexpected exceptions and ERROR in production are sent to a Matrix room
+MATRIX_HOMESERVER_URL = os.environ.get('MATRIX_HOMESERVER_URL')
+MATRIX_ACCESS_TOKEN = os.environ.get('MATRIX_ACCESS_TOKEN')
+MATRIX_ROOM_ID = os.environ.get('MATRIX_ROOM_ID')
 
-if not DEBUG and not TELEGRAM_CHAT_ID:
-    logging.error("TELEGRAM_CHAT_ID missing; production ERRORS won't be notified to telegram")
-
-if not DEBUG and not TELEGRAM_CHAT_TOKEN:
-    logging.error("TELEGRAM_CHAT_TOKEN missing; production ERRORS won't be notified to telegram")
-
+if not DEBUG and not (MATRIX_HOMESERVER_URL and MATRIX_ACCESS_TOKEN and MATRIX_ROOM_ID):
+    logging.error("Matrix not fully configured; production ERRORS won't be notified")
 
 ALLOWED_HOSTS = ['*']
-
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-
-if not AWS_S3_REGION_NAME or not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY or not AWS_STORAGE_BUCKET_NAME:
-    logging.warning("File storage not correctly configured: No AWS S3 values defined in settings.")
 
 # Application definition
 
@@ -115,15 +104,15 @@ LOGGING = {
         },
     },
     "handlers": {
-        "telegram": {
+        "matrix": {
             "level": "ERROR",
             'filters': ["require_debug_false"],
-            'class': 'shodan.logging_telegram.TelegramHandler',
+            'class': 'shodan.logging_matrix.MatrixHandler',
         },
     },
     "loggers": {
         "django": {
-            "handlers": ["telegram"],
+            "handlers": ["matrix"],
         },
     },
 }
@@ -202,3 +191,5 @@ if not DEBUG:
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+PRIVATE_STORAGE_ROOT = MEDIA_ROOT / 'private'
+PUBLIC_STORAGE_ROOT = MEDIA_ROOT / 'public'

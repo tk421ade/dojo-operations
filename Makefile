@@ -78,3 +78,6 @@ load_prod_fixtures:
 load_dev_fixtures: load_prod_fixtures
 	./venv/bin/python manage.py loaddata fixtures/auth_test_data.json
 	./venv/bin/python manage.py loaddata fixtures/dojoconf_test_data.json
+
+matrix_test:
+	./venv/bin/python3 manage.py send_matrix_test

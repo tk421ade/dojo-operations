@@ -7,20 +7,12 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.utils import timezone
-from storages.backends.s3boto3 import S3Boto3Storage
 
 from dojoconf.models import Dojo, Address, Classes, Event
 
 
 def get_file_storage():
-    if all([
-        getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-        getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
-        getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None),
-        getattr(settings, 'AWS_S3_REGION_NAME', None),
-    ]):
-        return S3Boto3Storage()
-    return FileSystemStorage(location=settings.BASE_DIR / 'media')
+    return FileSystemStorage(location=settings.PRIVATE_STORAGE_ROOT, base_url='/protected/files/')
 
 
 class Student(models.Model):

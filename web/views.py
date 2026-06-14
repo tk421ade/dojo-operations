@@ -355,13 +355,8 @@ def _get_client_ip(request):
 
 
 def _send_kiosk_lock_alert(dojo, ip_address):
-    from shodan.settings import TELEGRAM_CHAT_TOKEN, TELEGRAM_CHAT_ID
-    if not TELEGRAM_CHAT_TOKEN or not TELEGRAM_CHAT_ID:
-        logging.warning("Telegram not configured; kiosk lock alert not sent.")
-        return
+    from shodan.logging_matrix import send_matrix_message
     try:
-        import asyncio
-        from telegram import Bot
         message = (
             f"\U0001F512 KIOSK LOCKED\n\n"
             f"Dojo: {dojo.name}\n"
@@ -369,10 +364,10 @@ def _send_kiosk_lock_alert(dojo, ip_address):
             f"Last attempt IP: {ip_address}\n\n"
             f"An admin must unlock kiosk mode via the admin panel."
         )
-        bot = Bot(token=TELEGRAM_CHAT_TOKEN)
-        asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message[:4096]))
+        if not send_matrix_message(message):
+            logging.warning("Matrix not configured; kiosk lock alert not sent.")
     except Exception as e:
-        logging.error(f"Unable to send kiosk lock Telegram alert: {e}")
+        logging.error(f"Unable to send kiosk lock Matrix alert: {e}")
 
 
 def _process_kiosk_pin(request, dojo, form):

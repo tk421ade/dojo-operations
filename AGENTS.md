@@ -21,7 +21,7 @@ shodan/                     # Project root (git repo: dojo-operations)
     admin.py                # Django admin config + custom admin actions
     service.py              # autocreate_sessions_for_dojo()
     middleware.py            # Timezone, DojoPermissions, DojoConfiguration middleware
-    logging_telegram.py     # TelegramHandler for production error alerts
+    logging_matrix.py       # MatrixHandler for production error alerts
     forms.py                # AdminSessionForm
     tests/                  # test_session.py, test_attendance.py
   dojoconf/                 # Dojo configuration app: Dojo, Address, Classes, Event
@@ -93,12 +93,9 @@ Tests use Django's `TestCase` with fixtures from `fixtures/`. Test database is `
 |----------|---------|
 | `DJANGO_SECRET_KEY` | Django secret key (required for production) |
 | `DJANGO_DEBUG` | Enable debug mode (any value = True) |
-| `AWS_ACCESS_KEY_ID` | S3 file storage |
-| `AWS_SECRET_ACCESS_KEY` | S3 file storage |
-| `AWS_STORAGE_BUCKET_NAME` | S3 bucket name |
-| `AWS_S3_REGION_NAME` | S3 region |
-| `TELEGRAM_CHAT_ID` | Telegram chat for production error alerts |
-| `TELEGRAM_CHAT_TOKEN` | Telegram bot token for error alerts |
+| `MATRIX_HOMESERVER_URL` | Matrix homeserver URL for production error alerts |
+| `MATRIX_ACCESS_TOKEN` | Matrix access token for error alerts |
+| `MATRIX_ROOM_ID` | Matrix room ID for error alerts |
 
 ## Code Conventions
 
@@ -110,7 +107,7 @@ Tests use Django's `TestCase` with fixtures from `fixtures/`. Test database is `
 - Soft-delete pattern: models have `created_at`, `updated_at`, `deleted_at` DateTimeFields (soft delete is modelled but deletion is via Django admin standard delete).
 - Session model auto-populates `time_from`, `time_to`, `duration`, and `name` from the related `Classes` or `Event` in `save()`.
 - Attendance `save()` auto-updates the student's `hours` total (in minutes).
-- Production errors are sent to a Telegram bot via a custom logging handler (`shodan/logging_telegram.py`).
+- Production errors are sent to a Matrix room via a custom logging handler (`shodan/logging_matrix.py`).
 
 ## Frontend Conventions
 

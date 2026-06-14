@@ -12,21 +12,13 @@ from timezone_field import TimeZoneField
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-try:
-    from storages.backends.s3boto3 import S3Boto3Storage
-except ImportError:
-    S3Boto3Storage = None
-
 
 def get_file_storage():
-    if all([
-        getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-        getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
-        getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None),
-        getattr(settings, 'AWS_S3_REGION_NAME', None),
-    ]) and S3Boto3Storage:
-        return S3Boto3Storage()
-    return FileSystemStorage(location=settings.BASE_DIR / 'media')
+    return FileSystemStorage(location=settings.PRIVATE_STORAGE_ROOT, base_url='/protected/files/')
+
+
+def get_public_file_storage():
+    return FileSystemStorage(location=settings.PUBLIC_STORAGE_ROOT, base_url=settings.MEDIA_URL + 'public/')
 
 
 def _create_dojo_logo_path(instance, filename):
@@ -47,7 +39,7 @@ class Dojo(models.Model):
     kiosk_pin = models.CharField(max_length=6, null=True, blank=True, help_text='4-6 digit PIN for activating Kiosk Mode on the student-facing landing page.')
     kiosk_locked = models.BooleanField(default=False, help_text='When True, all kiosk PIN entry is blocked. Admin must unlock.')
     kiosk_failed_attempts = models.IntegerField(default=0, help_text='Consecutive failed kiosk PIN attempts. Resets on success or admin unlock.')
-    logo = models.FileField(upload_to=_create_dojo_logo_path, storage=get_file_storage, null=True, blank=True, help_text='Dojo logo (transparent PNG designed for white background). Displayed on all public pages.')
+    logo = models.FileField(upload_to=_create_dojo_logo_path, storage=get_public_file_storage, null=True, blank=True, help_text='Dojo logo (transparent PNG designed for white background). Displayed on all public pages.')
     created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

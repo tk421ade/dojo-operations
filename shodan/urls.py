@@ -29,7 +29,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('web.urls')),
     path('dev/error', views.dev_error, name='dev_error'),
-
+    path('protected/files/<path:path>', views.protected_file, name='protected_file'),
 ]
 
 if settings.DEBUG:

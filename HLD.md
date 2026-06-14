@@ -23,10 +23,10 @@ shodan/                     # Project root
     admin.py                # Admin classes + custom actions (autosession)
     service.py              # autocreate_sessions_for_dojo()
     middleware.py           # Timezone, DojoPermissions, DojoConfiguration middleware
-    logging_telegram.py     # TelegramHandler for production error alerts
+    logging_matrix.py      # MatrixHandler for production error alerts
     forms.py                # AdminSessionForm
     tests/                  # test_session.py, test_attendance.py
-    settings.py             # Django settings (DB, S3, Telegram, logging)
+    settings.py             # Django settings (DB, Matrix, logging, local storage)
     urls.py                 # Root URLconf (admin + web portal)
   dojoconf/                 # Dojo configuration app
     models.py               # Dojo, Address, Classes, Event
@@ -119,7 +119,7 @@ MT7 - When a non-superuser staff user creates a new dojo, they are automatically
 
 # Use Case U1 - Dojo Configuration
 
-U1.1 - A `Dojo` represents a karate training organization. Fields: name, email, timezone (pytz timezone), hostname, kiosk_pin (4-6 digit PIN for Kiosk Mode activation), logo (image file stored in S3/local, displayed on all public pages), users (M2M to Django `User`), created_at, updated_at, deleted_at.
+U1.1 - A `Dojo` represents a karate training organization. Fields: name, email, timezone (pytz timezone), hostname, kiosk_pin (4-6 digit PIN for Kiosk Mode activation), logo (image file stored in local public storage, displayed on all public pages), users (M2M to Django `User`), created_at, updated_at, deleted_at.
 U1.2 - A `Dojo` is linked to one or more `User` accounts (staff). Non-superuser users can only see dojos they are assigned to.
 U1.3 - An `Address` represents a physical training location. Fields: dojo FK, name (friendly name), street, city, state, zip_code, country, latitude, longitude. Used by `Classes` and `Event` to define where sessions are held.
 U1.4 - `Address` latitude/longitude are used for geo-verification during student attendance registration (see U4).
@@ -135,7 +135,7 @@ U2.2 - The student `hours` field accumulates total training time in minutes. It 
 U2.3 - The student `points` field accumulates points (toward grading). Points are set per-attendance.
 U2.4 - The student `kyu` and `dan` fields track rank progression. Kyu counts down (higher number = lower rank); dan counts up (black belt degrees).
 U2.5 - The admin list view defaults to filtering by `status = active`. This is enforced in `StudentAdmin.changelist_view` by injecting the filter when no query parameters are present.
-U2.6 - A `StudentDocument` can be attached to a student (e.g., medical certificate, grading certificate). Fields: student FK, name, file (uploaded to S3), notes, created_at. Files are stored in S3 under `dojo_<id>/student_<id>/file_<random>_<filename>`.
+U2.6 - A `StudentDocument` can be attached to a student (e.g., medical certificate, grading certificate). Fields: student FK, name, file (uploaded to local private storage), notes, created_at. Files are stored under `media/private/dojo_<id>/student_<id>/file_<random>_<filename>`. Private files are served through an auth-protected Django view (`/protected/files/<path>`) — not directly by nginx — ensuring only authenticated staff can access them.
 U2.7 - Student documents are managed via a `TabularInline` on the Student admin page.
 U2.8 - The student `email` field is used as the sole authentication identifier for the student web portal (no password). Email must match a Student record for the current dojo.
 
@@ -193,7 +193,7 @@ U4.19 - If no active membership sale exists, or if the sale is underpaid (`paid 
 
 ## Waiver Form
 
-U7.1 - An `EventWaiver` stores a signed participation/liability waiver for an `Event`. Fields: dojo FK, event FK, student FK (nullable), first_name, last_name, address, suburb, state, post_code, phone, email, date_of_birth, current_grade, emergency_contact_name, emergency_contact_relationship (nullable), emergency_contact_phone, terms_accepted (Boolean), questionnaire_responses (JSONField — dict of question number → "yes"/"no"), medical_specify (nullable text), other_reason_specify (nullable text), allergies (nullable text), applicant_signature (FileField→S3), applicant_name, applicant_date, guardian_signature (FileField→S3, nullable), guardian_name (nullable), guardian_date (nullable), created_at, updated_at, deleted_at.
+U7.1 - An `EventWaiver` stores a signed participation/liability waiver for an `Event`. Fields: dojo FK, event FK, student FK (nullable), first_name, last_name, address, suburb, state, post_code, phone, email, date_of_birth, current_grade, emergency_contact_name, emergency_contact_relationship (nullable), emergency_contact_phone, terms_accepted (Boolean), questionnaire_responses (JSONField — dict of question number → "yes"/"no"), medical_specify (nullable text), other_reason_specify (nullable text), allergies (nullable text), applicant_signature (FileField → local private storage), applicant_name, applicant_date, guardian_signature (FileField → local private storage, nullable), guardian_name (nullable), guardian_date (nullable), created_at, updated_at, deleted_at.
 
 U7.2 - The waiver form is public (no login required). The URL pattern is `/event/<event_id>/waiver`. The dojo is resolved from the hostname via `DojoConfigurationMiddleware` (same as all other pages). The event must belong to the resolved dojo.
 
@@ -209,7 +209,7 @@ U7.5.1 - An `Event` has a `requires_waiver` boolean field (default False). When 
 
 U7.6 - Signatures are captured via the `signature_pad` JavaScript library (loaded from CDN). Two canvas elements are rendered: one for the applicant signature and one for the guardian signature (optional, for applicants under 18).
 
-U7.7 - On form submission, JavaScript converts each canvas to a base64 PNG string and populates hidden form fields. The server decodes the base64 data and saves the image to S3 using `S3Boto3Storage` (or local `FileSystemStorage` when AWS is not configured), following the same storage pattern as `StudentDocument`. Files are stored under `dojo_<id>/waiver_<id>/`.
+U7.7 - On form submission, JavaScript converts each canvas to a base64 PNG string and populates hidden form fields. The server decodes the base64 data and saves the image to local private storage using `FileSystemStorage`, following the same storage pattern as `StudentDocument`. Files are stored under `media/private/dojo_<id>/waiver_<id>/` and served through an auth-protected Django view.
 
 U7.8 - Each signature pad has a "Clear" button to reset the canvas.
 
@@ -354,7 +354,7 @@ U9.8 - The registration form (`/kiosk/register`) reuses the full waiver form (sa
 U9.9 - The same honeypot anti-bot mechanism (`email2` field) is used as in the event waiver form (U7.10-U7.11).
 U9.10 - On submission, two records are created:
   - A `Student` record with `status=active`. The `name` field is the concatenation of `first_name + " " + last_name`. Other fields are mapped: email, mobile (from phone), date_of_birth, address1 (from address), address2 (suburb/state/postcode combined), emergency_contact, medical_conditions, start (today's date), kyu (parsed from current_grade).
-  - A `StudentWaiver` record linked to the new Student, storing the full waiver data: questionnaire responses (JSONField), allergies, medical details, terms acceptance, and digital signatures (uploaded to S3/local storage).
+  - A `StudentWaiver` record linked to the new Student, storing the full waiver data: questionnaire responses (JSONField), allergies, medical details, terms acceptance, and digital signatures (uploaded to local private storage).
 U9.11 - Duplicate prevention: if a `Student` with the same email already exists in the dojo **and has a `StudentWaiver`**, a message is shown ("already registered — use Register Attendance") and no new records are created. If the student exists but has **no waiver**, the form creates a waiver for the existing student (no new Student record is created).
 U9.12 - After successful registration, the user is redirected to `/kiosk/register/success` which displays a welcome message and auto-redirects back to the kiosk home after 5 seconds.
 
@@ -378,7 +378,7 @@ U9.21c - **Pending waiver state cleanup**: The `kiosk_waiver_pending_email` sess
 
 ## StudentWaiver Model
 
-U9.22 - A `StudentWaiver` stores the full waiver/registration data for a new student. Fields: dojo FK, student FK (non-nullable), first_name, last_name, address, suburb, state, post_code, phone, email, date_of_birth, current_grade, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, terms_accepted (Boolean), questionnaire_responses (JSONField), medical_specify, other_reason_specify, allergies, applicant_signature (FileField → S3), applicant_name, applicant_date, guardian_signature (FileField → S3, nullable), guardian_name, guardian_date, created_at, updated_at, deleted_at.
+U9.22 - A `StudentWaiver` stores the full waiver/registration data for a new student. Fields: dojo FK, student FK (non-nullable), first_name, last_name, address, suburb, state, post_code, phone, email, date_of_birth, current_grade, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, terms_accepted (Boolean), questionnaire_responses (JSONField), medical_specify, other_reason_specify, allergies, applicant_signature (FileField → local private storage), applicant_name, applicant_date, guardian_signature (FileField → local private storage, nullable), guardian_name, guardian_date, created_at, updated_at, deleted_at.
 U9.23 - `StudentWaiverAdmin` extends `DojoFkFilterModelAdmin` for dojo-scoped access. The admin detail view is fully read-only, displaying all submitted data including signature images as clickable thumbnails and questionnaire responses as a formatted table (same pattern as `EventWaiverAdmin`).
 
 ## View Attendees (Instructor)
@@ -414,9 +414,9 @@ U9.33 - All three PIN entry points (`/kiosk/activate`, `/kiosk/deactivate`, `/ki
 U9.34 - **Counter behaviour**:
   - Wrong PIN → `kiosk_failed_attempts` incremented by 1, logged at WARNING level with the client IP address (via `_get_client_ip` which checks `X-Forwarded-For` then `REMOTE_ADDR`).
   - Correct PIN → `kiosk_failed_attempts` reset to 0.
-  - `kiosk_failed_attempts >= 10` → `kiosk_locked` set to True, Telegram alert sent, locked page shown.
+  - `kiosk_failed_attempts >= 10` → `kiosk_locked` set to True, Matrix alert sent, locked page shown.
 
-U9.35 - **Lockout Telegram alert**: When the lock triggers, `_send_kiosk_lock_alert(dojo, ip)` sends a direct, concise message via `Bot.send_message()` (not the verbose `TelegramHandler`): dojo name, failed attempt count, last attempt IP, and instruction for admin to unlock. Silently skips if Telegram is not configured.
+U9.35 - **Lockout Matrix alert**: When the lock triggers, `_send_kiosk_lock_alert(dojo, ip)` sends a direct, concise message via `send_matrix_message()` (not the verbose `MatrixHandler`): dojo name, failed attempt count, last attempt IP, and instruction for admin to unlock. Silently skips if Matrix is not configured.
 
 U9.36 - **Locked state behaviour**:
   - All PIN entry pages show a "Kiosk Mode is locked" message with a lock icon instead of the PIN form.
@@ -429,11 +429,11 @@ U9.37 - **Admin unlock**: The Dojo admin page (`DojoAdmin`) includes `kiosk_lock
 
 M1 - The system is built with Django 5.2 and PostgreSQL. No SQLite fallback in production (SQLite code is commented out in settings).
 M2 - Multi-tenant isolation is enforced via middleware (hostname resolution, dojo permissions, timezone) and `DojoFkFilterModelAdmin`. All dojo-scoped models must extend this base admin class.
-M3 - Student documents and waiver signatures are stored in AWS S3 using `S3Boto3Storage` when AWS credentials are configured (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME`). When these are absent (e.g., dev environments), the system falls back to local file storage (`FileSystemStorage` under `MEDIA_ROOT`). The upload path is structured as `dojo_<id>/student_<id>/file_<random>_<filename>` for documents and `dojo_<id>/waiver_<id>/` for waiver signatures.
+M3 - Student documents and waiver signatures are stored on the local filesystem using `FileSystemStorage`. Private files (documents, signatures) are stored under `media/private/` and served through an auth-protected Django view (`/protected/files/<path>`) that verifies the requesting staff user has access to the relevant dojo. Public files (dojo logos) are stored under `media/public/` and served directly at `/media/public/` — these are intentionally publicly accessible. The upload path is structured as `dojo_<id>/student_<id>/file_<random>_<filename>` for documents, `dojo_<id>/waiver_<id>/` for waiver signatures, and `dojo_<id>/logo_<filename>` for logos.
 M4 - Attendance geo-verification uses the browser Geolocation API with `watchPosition` for real-time tracking. The server-side check validates the 30-minute window but does not re-verify distance (distance check is client-side only).
 M5 - The student web portal uses email-only authentication (no password). Session state stores `student_email`. This is intentional simplicity for karate students who may not be tech-savvy.
 M6 - Timezone handling: each dojo has a timezone field. `TimezoneMiddleware` activates the dojo's timezone for all requests. Timestamps in the admin are rendered in the dojo's timezone via `created_at_tz`.
-M7 - Production errors (HTTP 500-level and unhandled exceptions) are sent to a Telegram bot via `TelegramHandler`. This is configured in `settings.LOGGING` with a `require_debug_false` filter (only fires in production).
+M7 - Production errors (HTTP 500-level and unhandled exceptions) are sent to a Matrix room via `MatrixHandler`. This is configured in `settings.LOGGING` with a `require_debug_false` filter (only fires in production). The handler uses the Matrix Client-Server API v3 (same protocol as the production `monit-matrix` script) to send messages to the configured room.
 M8 - The soft-delete pattern (`created_at`, `updated_at`, `deleted_at`) is modeled on most entities but deletion is performed via Django admin's standard delete mechanism (hard delete). The `deleted_at` field exists for future soft-delete query filtering.
 M9 - The `Attendance.save()` method only increments student `hours` on initial creation (`pk is None`). Updates to existing attendance records do not re-calculate hours. Deleting an attendance record does not decrement hours.
 M10 - Currency is limited to AUD (`CURRENCIES = [('AUD', 'AUD')]`).
@@ -458,8 +458,8 @@ Dojo (dojoconf)
   │     ├── hours (accumulated minutes)
   │     ├── points
   │     ├── kyu, dan
-  │     └── StudentDocument (shodan)
-  │           └── file → S3
+  │   └── StudentDocument (shodan)
+  │           └── file → local private storage
   ├── Session (shodan)
   │     ├── classes FK → Classes (nullable)
   │     ├── event FK → Event (nullable)
@@ -494,14 +494,14 @@ Dojo (dojoconf)
         ├── student FK → Student (nullable)
         ├── personal info, emergency contact
         ├── questionnaire_responses (JSONField)
-        ├── applicant_signature → S3
-        └── guardian_signature → S3 (nullable)
+        ├── applicant_signature → local private storage
+        └── guardian_signature → local private storage (nullable)
   └── StudentWaiver (shodan)
         ├── student FK → Student (non-nullable)
         ├── personal info, emergency contact
         ├── questionnaire_responses (JSONField)
-        ├── applicant_signature → S3
-        └── guardian_signature → S3 (nullable)
+        ├── applicant_signature → local private storage
+        └── guardian_signature → local private storage (nullable)
 ```
 
 # Student Portal Flow
