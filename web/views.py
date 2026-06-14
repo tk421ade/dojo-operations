@@ -2,7 +2,6 @@ import base64
 import logging
 import urllib.parse
 from datetime import datetime, date, timedelta
-from enum import member
 from typing import Any
 
 import pytz

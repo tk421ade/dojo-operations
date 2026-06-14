@@ -1,6 +1,4 @@
-from datetime import datetime, timezone
-from email.policy import default
-
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -28,7 +26,7 @@ class MembershipProduct(models.Model):
     currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
     payment_instructions = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -62,7 +60,7 @@ class Membership(models.Model):
     amount = models.DecimalField(max_digits=6, decimal_places=2, help_text="Auto populated if empty", null=True, blank=True)
     currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -97,7 +95,7 @@ class Category(models.Model):
     dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
     name = models.CharField(max_length=200, help_text='i.e "Shimpads, Training material"')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -121,7 +119,7 @@ class Sale(models.Model):
     paid = models.DecimalField(max_digits=6, decimal_places=2)
     currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -156,6 +154,6 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=6, decimal_places=2)
     currency = models.CharField(max_length=3, choices=CURRENCIES, default='AUD')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

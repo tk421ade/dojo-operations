@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import timedelta, date
 
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from dojoconf.models import Classes
@@ -29,9 +30,9 @@ def autocreate_sessions_for_dojo(request, dojo_id):
     all_classes = Classes.objects.filter(dojo_id=dojo_id)
     for classes in all_classes:
         current_date = classes.starting_at
-        if current_date < datetime.now().date():
-            current_date = datetime.now().date()
-        finishing_date = datetime.now().date() + relativedelta(months=1)
+        if current_date < timezone.now().date():
+            current_date = timezone.now().date()
+        finishing_date = timezone.now().date() + relativedelta(months=1)
         if classes.finishing_at and finishing_date > classes.finishing_at:
             finishing_date = classes.finishing_at
 

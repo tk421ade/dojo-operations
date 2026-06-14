@@ -425,7 +425,7 @@ U9.37 - **Admin unlock**: The Dojo admin page (`DojoAdmin`) includes `kiosk_lock
 
 # Important Considerations
 
-M1 - The system is built with Django 5.1 and PostgreSQL. No SQLite fallback in production (SQLite code is commented out in settings).
+M1 - The system is built with Django 5.2 and PostgreSQL. No SQLite fallback in production (SQLite code is commented out in settings).
 M2 - Multi-tenant isolation is enforced via middleware (hostname resolution, dojo permissions, timezone) and `DojoFkFilterModelAdmin`. All dojo-scoped models must extend this base admin class.
 M3 - Student documents and waiver signatures are stored in AWS S3 using `S3Boto3Storage` when AWS credentials are configured (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME`). When these are absent (e.g., dev environments), the system falls back to local file storage (`FileSystemStorage` under `MEDIA_ROOT`). The upload path is structured as `dojo_<id>/student_<id>/file_<random>_<filename>` for documents and `dojo_<id>/waiver_<id>/` for waiver signatures.
 M4 - Attendance geo-verification uses the browser Geolocation API with `watchPosition` for real-time tracking. The server-side check validates the 30-minute window but does not re-verify distance (distance check is client-side only).

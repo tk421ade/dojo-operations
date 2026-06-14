@@ -35,7 +35,7 @@ recreate: clean
 reset-database: database_reset
 	find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
 	find . -path "*/migrations/*.pyc"  -delete
-	./venv/bin/pip3 install --upgrade --force-reinstall  Django==5.1
+	./venv/bin/pip3 install --upgrade --force-reinstall  Django==5.2
 
 collectstatic:
 	./venv/bin/python3 manage.py collectstatic --no-input

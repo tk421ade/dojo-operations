@@ -10,7 +10,7 @@ For every user-requested change:
 
 ## Project Overview
 
-Shodan is a Karate Dojo Management System built with Django 5.1. It manages dojos, students, training sessions, attendance (with geo-verification), memberships, and financial tracking (sales/expenses). The system supports multiple dojos with hostname-based tenant resolution.
+Shodan is a Karate Dojo Management System built with Django 5.2. It manages dojos, students, training sessions, attendance (with geo-verification), memberships, and financial tracking (sales/expenses). The system supports multiple dojos with hostname-based tenant resolution.
 
 ## Project Structure
 

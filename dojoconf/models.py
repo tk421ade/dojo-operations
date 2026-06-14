@@ -1,10 +1,11 @@
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
+from django.utils.timezone import now as tz_now
 from django.utils.safestring import mark_safe
 from timezone_field import TimeZoneField
 
@@ -47,7 +48,7 @@ class Dojo(models.Model):
     kiosk_locked = models.BooleanField(default=False, help_text='When True, all kiosk PIN entry is blocked. Admin must unlock.')
     kiosk_failed_attempts = models.IntegerField(default=0, help_text='Consecutive failed kiosk PIN attempts. Resets on success or admin unlock.')
     logo = models.FileField(upload_to=_create_dojo_logo_path, storage=get_file_storage, null=True, blank=True, help_text='Dojo logo (transparent PNG designed for white background). Displayed on all public pages.')
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -66,7 +67,7 @@ class Address(models.Model):
                                    help_text=mark_safe("<a target='_blank' href='https://www.latlong.net/'>Find Latitude</a>"))
     longitude = models.DecimalField(max_digits=20, decimal_places=15, null=True, blank=True,
                                     help_text=mark_safe("<a target='_blank' href='https://www.latlong.net/'>Find Longitude</a>"))
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -97,7 +98,7 @@ class Classes(models.Model):
     time_from = models.TimeField(help_text='i.e "Starting Local Time"')
     time_to = models.TimeField(help_text='i.e "Finishing Local Time"')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -119,7 +120,7 @@ class Event(models.Model):
     notes = models.TextField(null=True, blank=True)
     requires_waiver = models.BooleanField(default=False, help_text='If enabled, an "Events" button appears on the landing page linking to the waiver form.')
     waiver_success_message = models.TextField(null=True, blank=True, help_text='Custom message shown on the waiver success page after submission. Leave blank for default message.')
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 

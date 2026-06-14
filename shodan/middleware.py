@@ -1,6 +1,5 @@
 import urllib.parse
 
-import pytz
 from django.contrib.auth.models import User
 from django.contrib.sessions.backends.cache import SessionStore
 from django.utils import timezone

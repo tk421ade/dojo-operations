@@ -1,11 +1,12 @@
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.utils import timezone
 from storages.backends.s3boto3 import S3Boto3Storage
 
 from dojoconf.models import Dojo, Address, Classes, Event
@@ -43,7 +44,7 @@ class Student(models.Model):
     medical_conditions = models.TextField(null=True, blank=True)
     emergency_contact = models.TextField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -75,7 +76,7 @@ class Session(models.Model):
     time_to = models.TimeField(null=True, blank=True,help_text='For standard classes will be calculated automatically if empty')
     duration = models.DurationField(null=True, blank=True, help_text='For standard classes will be calculated automatically if empty')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -142,7 +143,7 @@ class Attendance(models.Model):
     duration = models.DurationField(null=True, blank=True, help_text='Optional, it will be calculated automatically if empty (i.e 1:30 for 90 minutes)')
     points = models.IntegerField(null=True, blank=True, help_text='Optional, if it adds points towards the next grading.')
     notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -217,7 +218,7 @@ class EventWaiver(models.Model):
     guardian_name = models.CharField(max_length=200, null=True, blank=True)
     guardian_date = models.DateField(null=True, blank=True)
 
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -276,7 +277,7 @@ class StudentWaiver(models.Model):
     guardian_name = models.CharField(max_length=200, null=True, blank=True)
     guardian_date = models.DateField(null=True, blank=True)
 
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
