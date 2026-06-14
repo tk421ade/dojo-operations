@@ -68,8 +68,28 @@ class DojoAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'timezone')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    readonly_fields = ('created_at', 'updated_at', 'deleted_at', 'kiosk_failed_attempts')
     autocomplete_fields = ["users"]
+    actions = ['unlock_kiosk']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'email', 'users', 'timezone', 'hostname')
+        }),
+        ('Kiosk Mode', {
+            'fields': ('kiosk_pin', 'kiosk_locked', 'kiosk_failed_attempts'),
+            'classes': ('collapse',),
+            'description': 'Set a 4-6 digit PIN to enable Kiosk Mode on the student-facing landing page. After 10 failed PIN attempts the kiosk locks and must be unlocked here.',
+        }),
+        ('Branding', {
+            'fields': ('logo',),
+            'classes': ('collapse',),
+            'description': 'Upload a dojo logo (transparent PNG designed for white background). Displayed on all public pages.',
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+            'classes': ('collapse',),
+        }),
+    )
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -109,6 +129,11 @@ class DojoAdmin(admin.ModelAdmin):
             session: SessionStore = request.session
             session['user_dojos'] = dojo_ids
 
+    @admin.action(description='Unlock kiosk mode')
+    def unlock_kiosk(self, request, queryset):
+        updated = queryset.update(kiosk_locked=False, kiosk_failed_attempts=0)
+        self.message_user(request, f'Kiosk unlocked for {updated} dojo(s).')
+
 
 class AddressAdmin(DojoFkFilterModelAdmin):
     help_text = "Hello world"
@@ -145,9 +170,10 @@ class ClassesAdmin(DojoFkFilterModelAdmin):
 
 
 class EventAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'name',)
+    list_display = ('id', 'name', 'requires_waiver')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name',)
+    list_filter = ('requires_waiver',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
     def changelist_view(self, request, extra_context=None):

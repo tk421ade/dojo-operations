@@ -1,71 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content_header %}
-    <h1 class="text-3xl">Welcome {{ student.name }}</h1>
-
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Welcome, {{ student.name }}</h1>
 {% endblock %}
 
 {% block style %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-
     <style>
-        .notification {
-            background-color: #f44336; /* Error color */
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        #map { z-index: 0; }
+        .leaflet-container { background: #aadaff; }
+        @media (prefers-color-scheme: dark) {
+            .leaflet-container { background: #1a2a3a; }
         }
-
-        .notification.error {
-            background-color: #f44336; /* Error color */
-        }
-
-        .notification.success {
-            background-color: #4caf50; /* Success color */
-        }
-
-        .dismiss {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-        }
-
-        .dismiss:hover {
-            color: #ccc;
-        }
-
-        .dismiss:focus {
-            outline: none;
-        }
-
-        .red {
-            color: red;
-        }
-        .green {
-            color: green;
-        }
-
     </style>
 {% endblock %}
 
 {% block js %}
-{#    <script>#}
-{#        document.addEventListener('DOMContentLoaded', function() {#}
-{#            const notification = document.getElementById('error-notification');#}
-{#            const dismissButton = notification.querySelector('.dismiss');#}
-{##}
-{#            dismissButton.addEventListener('click', () => {#}
-{#                notification.style.display = 'none';#}
-{#            });#}
-{#        });#}
-{#    </script>#}
-
-
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
     <script>
@@ -75,19 +25,31 @@
         var userMarker = null;
         var polyline = null;
 
+        var GREEN_CLASSES = ['text-green-600', 'dark:text-green-400', 'font-semibold'];
+        var RED_CLASSES = ['text-red-600', 'dark:text-red-400', 'font-semibold'];
+
+        function setGreen(el) {
+            GREEN_CLASSES.forEach(function(c) { el.classList.add(c); });
+            RED_CLASSES.forEach(function(c) { el.classList.remove(c); });
+        }
+        function setRed(el) {
+            RED_CLASSES.forEach(function(c) { el.classList.add(c); });
+            GREEN_CLASSES.forEach(function(c) { el.classList.remove(c); });
+        }
+
         function toggleAttendanceForm() {
             if (isCloseInTime && isCloseInDistance) {
                 document.getElementById("registrationOpen").style.display = "block";
                 document.getElementById("registrationClose").style.display = "none";
             } else {
-                document.getElementById("registrationOpen").style.display = "hide";
+                document.getElementById("registrationOpen").style.display = "none";
                 document.getElementById("registrationClose").style.display = "block";
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
 
-            const countdownDate = new Date("{{ countdown_date }}"); // Pass the date from Django
+            const countdownDate = new Date("{{ countdown_date }}");
             const countdownElement = document.getElementById("countdown");
 
             function updateCountdown() {
@@ -126,25 +88,17 @@
 
                 countdownElement.innerHTML = `${str}`;
                 if (distance < 30 * 60 * 1000 ) {
-                    if (! countdownElement.classList.contains("green")) {
-                        countdownElement.classList.add("green");
-                        countdownElement.classList.remove("red");
-                    }
+                    setGreen(countdownElement);
                 } else {
-                    if (! countdownElement.classList.contains("red")) {
-                        countdownElement.classList.add("red");
-                        countdownElement.classList.remove("green");
-                    }
+                    setRed(countdownElement);
                 }
 
-                // if it is closer than 30 minutes
                 if ( distance / 1000 < 30 * 60) {
                     isCloseInTime = true;
                 }
                 toggleAttendanceForm();
-
             }
-            setInterval(updateCountdown, 1000); // Update every second
+            setInterval(updateCountdown, 1000);
         });
     </script>
     <script>
@@ -152,7 +106,7 @@
             return deg * (Math.PI / 180);
         }
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const earthRadius = 6371; // km
+            const earthRadius = 6371;
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
             const a =
@@ -165,56 +119,40 @@
             const distance = earthRadius * c;
             return distance;
         }
-
-
     </script>
     <script>
-        // print direction and distance
         document.addEventListener('DOMContentLoaded', function() {
 
-            // Set up the map
             map = L.map('map').setView([0, 0], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
                 subdomains: ['a', 'b', 'c']
             }).addTo(map);
 
-            // Target locationdistance
             const targetLatitude = {{address.latitude}};
             const targetLongitude = {{address.longitude}};
 
-            // Add target marker
             const targetMarker = L.marker([targetLatitude, targetLongitude]).addTo(map);
 
             navigator.geolocation.watchPosition((position) => {
-                // distance
                 const currentLat = position.coords.latitude;
                 const currentLng = position.coords.longitude;
-                const targetLat = {{address.latitude}}; // Target latitude
-                const targetLng = {{address.longitude}}; // Target longitude
+                const targetLat = {{address.latitude}};
+                const targetLng = {{address.longitude}};
 
-                // show the distance
                 const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
                 if (distance < 0.1) {
                     isCloseInDistance = true;
                 }
-                //document.getElementById("distance").innerText = `${distance.toFixed(2)} km (${position.coords.latitude}. ${position.coords.longitude})`;
                 const distanceHTML = document.getElementById("distance");
                 distanceHTML.innerText = `${distance.toFixed(2)} km`;
 
                 if (distance < 0.5 ) {
-                    if (! distanceHTML.classList.contains("green")) {
-                        distanceHTML.classList.add("green");
-                        distanceHTML.classList.remove("red");
-                    }
+                    setGreen(distanceHTML);
                 } else {
-                    if (! distanceHTML.classList.contains("red")) {
-                        distanceHTML.classList.add("red");
-                        distanceHTML.classList.remove("green");
-                    }
+                    setRed(distanceHTML);
                 }
 
-                // show the map
                 try {
                     const userLatitude = currentLat;
                     const userLongitude = currentLng;
@@ -226,48 +164,42 @@
                         firstRun = false;
                     }
 
-                    // Update the map to show the user's location
                     if ( userMarker === null ) {
                         userMarker = L.marker([userLatitude, userLongitude]).addTo(map);
                     } else {
                         userMarker.setLatLng([userLatitude, userLongitude]);
                     }
 
-                    // Draw a line between user and target locations
                     if (polyline === null) {
                         polyline = L.polyline([[userLatitude, userLongitude], [targetLatitude, targetLongitude]], {color: 'red'}).addTo(map);
                     } else {
                         polyline.setLatLngs([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
                     }
 
-                    // Adjust map bounds to show both points
                     if ( firstRun ) {
                         const bounds = L.latLngBounds([[userLatitude, userLongitude], [targetLatitude, targetLongitude]]);
                         map.fitBounds(bounds, {padding: [70, 70]});
                     }
                 } catch (error) {
                     console.error("Map WatchPosition Error(1):", error.message);
-                    document.getElementById('map-errors').innerText += "Map WatchPosition Error(1):" + error.message + '<br>';
+                    document.getElementById('map-errors').innerText += "Map WatchPosition Error(1):" + error.message + '\n';
                 }
 
 
             }, (error) => {
                 if (error.code === 1) {
-                    document.getElementById("distance").innerText = ' - error: access denied. ' +
-                        'Please enable and authorize location services';
+                    document.getElementById("distance").innerText = 'access denied — please enable and authorize location services';
                     if (navigator.userAgent.includes("Safari")) {
                         if (navigator.userAgent.includes('Macintosh')) {
-                            document.getElementById("distance").innerText += ": On your iPhone or iPad, open the " +
-                                "Settings app. Tap Privacy > Location Services. Scroll down, then tap Safari Websites. " +
-                                "Under “Allow location access,” make sure it's set to While using the app";
+                            document.getElementById("distance").innerText += '. On your iPhone or iPad: Settings → Privacy → Location Services → Safari Websites → Allow "While using the app"';
                         }
                     }
                 } else if (error.code === 2) {
-                    document.getElementById("distance").innerText = ' - error: unable to determine location'
+                    document.getElementById("distance").innerText = 'unable to determine location';
                 } else if (error.code === 3) {
-                    document.getElementById("distance").innerText = ' - error: location retrieval timed out'
+                    document.getElementById("distance").innerText = 'location retrieval timed out';
                 } else {
-                    document.getElementById("distance").innerText = ' - unknown error: ' + error.message
+                    document.getElementById("distance").innerText = 'unknown error: ' + error.message;
                 }
                 console.error(error);
             }, {
@@ -287,59 +219,97 @@
 {% block content %}
     {% if messages %}
         {% for message in messages %}
-            <div class="notification error" id="error-notification">
-                <span class="message">{{ message }}</span>
+            <div class="mb-4 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/40">
+                <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <span class="text-sm text-red-700 dark:text-red-300">{{ message }}</span>
             </div>
         {% endfor %}
     {% endif %}
 
     {% if payment_required %}
-        <div class="notification error" id="error-notification">
-            <span class="message">
-                <p>Osu! Your membership is about to expire. Renew, recharge, and keep punching forward!</p>
-                {% if not membership %}
-                    <p>Please contact your dojo to subscribe to a membership.<p>
-                {% elif membership and membership.membership_product %}
-                    <p>
-                        Membership name: {{ membership.membership_product.name }}.<br>
-                        Frequency: {{ membership.membership_product.frequency|capfirst }}.<br>
-                        Amount: {{ membership.membership_product.amount }} {{ membership.membership_product.currency }}.<br>
+        <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+            <div class="flex items-start gap-3">
+                <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <div class="text-sm text-amber-800 dark:text-amber-200">
+                    <p class="font-semibold">OSU! Your membership is about to expire. Renew, recharge, and keep punching forward!</p>
+                    {% if not membership %}
+                        <p class="mt-1">Please contact your dojo to subscribe to a membership.</p>
+                    {% elif membership and membership.membership_product %}
+                        <dl class="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                            <div><dt class="inline font-medium">Membership:</dt> <dd class="inline">{{ membership.membership_product.name }}</dd></div>
+                            <div><dt class="inline font-medium">Frequency:</dt> <dd class="inline">{{ membership.membership_product.frequency|capfirst }}</dd></div>
+                            <div><dt class="inline font-medium">Amount:</dt> <dd class="inline">{{ membership.membership_product.amount }} {{ membership.membership_product.currency }}</dd></div>
+                        </dl>
                         {% if membership.membership_product.payment_instructions %}
-                            Payment Instructions: {{ membership.membership_product.payment_instructions }}
+                            <p class="mt-2 border-t border-amber-200 pt-2 dark:border-amber-800"><span class="font-medium">Payment instructions:</span> {{ membership.membership_product.payment_instructions }}</p>
                         {% endif %}
-                    <p>
-
-                {% endif %}
-
-            </span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     {% endif %}
 
-    <h2>{{ session.name }}</h2>
-    <p>
-        <b>Session hosted by</b>: {{ session.dojo.name }}<br>
-        <b>When</b>: {{session.date}}  {{session.time_from}} to {{session.time_to}}<br>
-        <b>Where</b>: {{ address.name }} at {{ address.street }}, {{ address.zip_code }} {{ address.city }},
-        {{ address.state }} (<a id="open-in=maps" href="geo:{{address.latitude}},{{address.longitude}}">Open in Maps</a>)
-    </p>
-
-    <h2>Registration</h2>
-    <div id="registrationOpen" style="display: none">
-        <p>Registration is now Open</p>
-        <form method="post" action="/student/session/attendance">
-            {% csrf_token %}
-            <button type="submit">Register Attendance</button>
-        </form>
+    <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ session.name }}</h2>
+        <dl class="mt-4 space-y-2 text-sm">
+            <div class="flex gap-2">
+                <dt class="font-semibold text-gray-500 dark:text-gray-400">Hosted by:</dt>
+                <dd>{{ session.dojo.name }}</dd>
+            </div>
+            <div class="flex gap-2">
+                <dt class="font-semibold text-gray-500 dark:text-gray-400">When:</dt>
+                <dd>{{ session.date }} &nbsp; {{ session.time_from }} &ndash; {{ session.time_to }}</dd>
+            </div>
+            <div class="flex gap-2">
+                <dt class="font-semibold text-gray-500 dark:text-gray-400">Where:</dt>
+                <dd>
+                    {{ address.name }} &mdash; {{ address.street }}, {{ address.zip_code }} {{ address.city }}, {{ address.state }}
+                    <a id="open-in-maps" href="geo:{{address.latitude}},{{address.longitude}}"
+                       class="ml-1 font-medium text-red-600 hover:underline dark:text-red-400">Open in Maps</a>
+                </dd>
+            </div>
+        </dl>
     </div>
-    <div id="registrationClose">
-        <p>
-            1 - The registration is available for 30 minutes before the session starts in <span  id="countdown"> - calculating - </span>
-        <p>
-        <p>
-            2 - You need to be within 100m of the location. Currently, you are <span id="distance"> - getting gps coordinates - </span> away. Please move closer before registration opens.
-        </p>
-        <div id="map" style="width: 100%; height: 450px;"></div>
-        <div id="map-errors" ></div>
 
+    <h2 class="mt-8 mb-4 text-xl font-bold text-gray-900 dark:text-gray-100">Registration</h2>
+
+    <div id="registrationOpen" style="display: none;">
+        <div class="rounded-xl border border-green-300 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950/30">
+            <p class="mb-4 text-lg font-medium text-green-800 dark:text-green-200">Registration is now open!</p>
+            <form method="post" action="/student/session/attendance" class="inline-block">
+                {% csrf_token %}
+                <button type="submit"
+                        class="rounded-lg bg-green-600 px-8 py-3 text-base font-semibold text-white shadow-md transition hover:bg-green-700 focus:ring-2 focus:ring-green-500/40 focus:outline-none">
+                    Register Attendance
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registrationClose">
+        <div class="space-y-4">
+            <div class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300">1</span>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    Registration opens <strong>30 minutes</strong> before the session starts. Time remaining:
+                    <span id="countdown" class="ml-1 inline-block text-gray-500 dark:text-gray-400">&mdash; calculating &mdash;</span>
+                </p>
+            </div>
+            <div class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300">2</span>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    You must be within <strong>100&nbsp;m</strong> of the location. You are currently
+                    <span id="distance" class="ml-1 inline-block text-gray-500 dark:text-gray-400">&mdash; getting GPS coordinates &mdash;</span>
+                    away.
+                </p>
+            </div>
+        </div>
+
+        <div id="map" class="mt-4 h-[450px] w-full overflow-hidden rounded-xl border border-gray-300 dark:border-gray-600"></div>
+        <div id="map-errors" class="mt-2 text-sm text-red-600 dark:text-red-400"></div>
     </div>
 {% endblock %}

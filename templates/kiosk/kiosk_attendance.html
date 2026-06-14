@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content_header %}
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Register Attendance</h1>
+    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">{{ dojo.name }}</p>
+{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <p class="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Enter your email address to register for today's class.
+        </p>
+
+        <form method="post" action="/kiosk/attendance" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="id_email" class="mb-1.5 block text-base">Email Address</label>
+                <input type="email" name="email" id="id_email" placeholder="you@example.com" autofocus
+                       class="text-lg">
+            </div>
+            <button type="submit"
+                    class="w-full rounded-lg bg-green-600 px-4 py-3.5 text-center text-lg font-semibold text-white shadow-sm transition hover:bg-green-700 focus:ring-2 focus:ring-green-500/40 focus:outline-none">
+                Register
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-6 text-center">
+        <a href="/kiosk" class="text-sm text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+            &larr; Back to Kiosk
+        </a>
+    </div>
+{% endblock %}

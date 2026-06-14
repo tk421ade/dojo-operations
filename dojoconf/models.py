@@ -1,12 +1,39 @@
+import os
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.files.storage import FileSystemStorage
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from timezone_field import TimeZoneField
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+
+try:
+    from storages.backends.s3boto3 import S3Boto3Storage
+except ImportError:
+    S3Boto3Storage = None
+
+
+def get_file_storage():
+    if all([
+        getattr(settings, 'AWS_ACCESS_KEY_ID', None),
+        getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
+        getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None),
+        getattr(settings, 'AWS_S3_REGION_NAME', None),
+    ]) and S3Boto3Storage:
+        return S3Boto3Storage()
+    return FileSystemStorage(location=settings.BASE_DIR / 'media')
+
+
+def _create_dojo_logo_path(instance, filename):
+    dojo_id = instance.id or 'new'
+    return os.path.join(
+        str(f"dojo_{dojo_id}"),
+        f"logo_{filename}",
+    )
 
 
 # Create your models here.
@@ -16,12 +43,13 @@ class Dojo(models.Model):
     users = models.ManyToManyField(User, related_name='dojos')
     timezone =  TimeZoneField()
     hostname = models.CharField(null=True, blank=True, max_length=255, help_text='Hosted hostname (i.e dojo.brightonkarate.com.au)')
+    kiosk_pin = models.CharField(max_length=6, null=True, blank=True, help_text='4-6 digit PIN for activating Kiosk Mode on the student-facing landing page.')
+    kiosk_locked = models.BooleanField(default=False, help_text='When True, all kiosk PIN entry is blocked. Admin must unlock.')
+    kiosk_failed_attempts = models.IntegerField(default=0, help_text='Consecutive failed kiosk PIN attempts. Resets on success or admin unlock.')
+    logo = models.FileField(upload_to=_create_dojo_logo_path, storage=get_file_storage, null=True, blank=True, help_text='Dojo logo (transparent PNG designed for white background). Displayed on all public pages.')
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"[{self.id}] {self.name}"
 
     def __str__(self):
         return f"[{self.id}] {self.name}"
@@ -89,6 +117,8 @@ class Event(models.Model):
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
     name = models.CharField(max_length=200, help_text='i.e "Seminar, Grading, Competition, etc."')
     notes = models.TextField(null=True, blank=True)
+    requires_waiver = models.BooleanField(default=False, help_text='If enabled, an "Events" button appears on the landing page linking to the waiver form.')
+    waiver_success_message = models.TextField(null=True, blank=True, help_text='Custom message shown on the waiver success page after submission. Leave blank for default message.')
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

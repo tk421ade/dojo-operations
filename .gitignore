@@ -3,3 +3,4 @@ shodan.iml
 db.sqlite3
 venv
 *.pyc
+media/

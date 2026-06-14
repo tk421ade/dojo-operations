@@ -1,21 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content_header %}
-    <h1 class="text-3xl">Welcome {{ student.name }}</h1>
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Welcome, {{ student.name }}</h1>
 {% endblock %}
-
 
 {% block content %}
     {% if messages %}
         {% for message in messages %}
-            <p>{{ message }}</p>
+            <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+                {{ message }}
+            </div>
         {% endfor %}
     {% endif %}
 
-    <p>Choose your session for {{ date }}</p>
-    {% for session in sessions %}
-        <p><a href="{% url 'student_session_id' session.id %}">
-            <button class="btn success mb-2">{{ session.name }} ({{ session.time_from  }} to {{ session.time_to }})</button>
-        </a></p>
-    {% endfor %}
+    <p class="mb-6 text-gray-600 dark:text-gray-400">Choose your session for <strong>{{ date }}</strong></p>
+
+    <div class="flex flex-col gap-3">
+        {% for session in sessions %}
+            <a href="{% url 'student_session_id' session.id %}"
+               class="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm transition hover:border-red-400 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-red-500">
+                <div>
+                    <span class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ session.name }}</span>
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ session.time_from }} &ndash; {{ session.time_to }}
+                </div>
+            </a>
+        {% endfor %}
+    </div>
 {% endblock %}

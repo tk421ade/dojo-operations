@@ -112,6 +112,17 @@ Tests use Django's `TestCase` with fixtures from `fixtures/`. Test database is `
 - Attendance `save()` auto-updates the student's `hours` total (in minutes).
 - Production errors are sent to a Telegram bot via a custom logging handler (`shodan/logging_telegram.py`).
 
+## Frontend Conventions
+
+- All public-facing pages use **TailwindCSS** (Play CDN) with dark mode auto-following the OS (`prefers-color-scheme`).
+- Every public page must look modern, clean, and professional — as if created by a Big Tech company. No raw unstyled HTML.
+- **Dark mode is mandatory** on all public pages. Every colour must have a `dark:` variant. Always test in both light and dark.
+- `base.html` contains a global `<style type="text/tailwindcss">` block that auto-styles all native form elements (inputs, selects, textareas, checkboxes, radios). Do not add per-field CSS classes in form definitions — rely on the global layer.
+- Accent colour is **red** (`red-600`) for primary actions. Success = green, warning = amber, error = red.
+- Pages are **mobile-first responsive**. Students use phones. Use `grid-cols-1 sm:grid-cols-2` patterns and touch-friendly targets.
+- Content is wrapped in **card sections** (`rounded-xl border shadow-sm bg-white dark:bg-gray-800`) within the `max-w-4xl` container from `base.html`.
+- Admin pages (`/admin/`) use Django's built-in admin CSS and are NOT styled with Tailwind.
+
 ## Multi-Tenant Architecture
 
 - Each `Dojo` has a `hostname` field. The `DojoConfigurationMiddleware` resolves the hostname from the request and stores `dojo_id` in the session.

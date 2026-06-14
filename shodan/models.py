@@ -2,11 +2,24 @@ import os
 import random
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.storage import FileSystemStorage
 from django.db import models
 from storages.backends.s3boto3 import S3Boto3Storage
 
 from dojoconf.models import Dojo, Address, Classes, Event
+
+
+def get_file_storage():
+    if all([
+        getattr(settings, 'AWS_ACCESS_KEY_ID', None),
+        getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
+        getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None),
+        getattr(settings, 'AWS_S3_REGION_NAME', None),
+    ]):
+        return S3Boto3Storage()
+    return FileSystemStorage(location=settings.BASE_DIR / 'media')
 
 
 class Student(models.Model):
@@ -47,7 +60,7 @@ def _create_student_document_path(instance, filename):
 class StudentDocument(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
-    file = models.FileField(upload_to=_create_student_document_path, storage=S3Boto3Storage())
+    file = models.FileField(upload_to=_create_student_document_path, storage=get_file_storage)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -149,3 +162,123 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"[{self.id}] {self.student.name} for {self.session.name}"
+
+
+def _create_waiver_signature_path(instance, filename):
+    return os.path.join(
+        str(f"dojo_{instance.dojo.id}"),
+        str(f"waiver_{instance.id}"),
+        filename,
+    )
+
+
+class EventWaiver(models.Model):
+    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True,
+                                help_text='Auto-matched by email. Null for external students.')
+
+    first_name = models.CharField(max_length=200)
+    last_name = models.CharField(max_length=200)
+    address = models.CharField(max_length=255)
+    suburb = models.CharField(max_length=200, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    post_code = models.CharField(max_length=20, null=True, blank=True)
+    phone = models.CharField(max_length=50)
+    email = models.EmailField(max_length=200)
+    date_of_birth = models.DateField(null=True, blank=True)
+    current_grade = models.CharField(max_length=100, null=True, blank=True, help_text='Current grade (Kyu)')
+
+    emergency_contact_name = models.CharField(max_length=200)
+    emergency_contact_relationship = models.CharField(max_length=100, null=True, blank=True)
+    emergency_contact_phone = models.CharField(max_length=50)
+
+    terms_accepted = models.BooleanField(default=False, help_text='Participant agrees to the terms and conditions.')
+
+    questionnaire_responses = models.JSONField(
+        default=dict,
+        help_text='Physical readiness questionnaire responses: {"q1": "yes", "q2": "no", ...}')
+
+    medical_specify = models.TextField(null=True, blank=True,
+                                       help_text='Q13: Please specify any illness not mentioned.')
+    other_reason_specify = models.TextField(null=True, blank=True,
+                                            help_text='Q14: Please specify any other reason.')
+    allergies = models.TextField(null=True, blank=True, help_text='Allergies details.')
+
+    applicant_signature = models.FileField(
+        upload_to=_create_waiver_signature_path, storage=get_file_storage,
+        help_text='Applicant signature image (PNG).')
+    applicant_name = models.CharField(max_length=200)
+    applicant_date = models.DateField()
+
+    guardian_signature = models.FileField(
+        upload_to=_create_waiver_signature_path, storage=get_file_storage,
+        null=True, blank=True, help_text='Guardian signature image (PNG). Required if applicant is under 18.')
+    guardian_name = models.CharField(max_length=200, null=True, blank=True)
+    guardian_date = models.DateField(null=True, blank=True)
+
+    created_at = models.DateTimeField(default=datetime.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"[{self.id}] {self.first_name} {self.last_name} — {self.event.name}"
+
+
+def _create_student_waiver_signature_path(instance, filename):
+    return os.path.join(
+        str(f"dojo_{instance.dojo.id}"),
+        str(f"student_waiver_{instance.id}"),
+        filename,
+    )
+
+
+class StudentWaiver(models.Model):
+    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+
+    first_name = models.CharField(max_length=200)
+    last_name = models.CharField(max_length=200)
+    address = models.CharField(max_length=255)
+    suburb = models.CharField(max_length=200, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    post_code = models.CharField(max_length=20, null=True, blank=True)
+    phone = models.CharField(max_length=50)
+    email = models.EmailField(max_length=200)
+    date_of_birth = models.DateField(null=True, blank=True)
+    current_grade = models.CharField(max_length=100, null=True, blank=True, help_text='Current grade (Kyu)')
+
+    emergency_contact_name = models.CharField(max_length=200)
+    emergency_contact_relationship = models.CharField(max_length=100, null=True, blank=True)
+    emergency_contact_phone = models.CharField(max_length=50)
+
+    terms_accepted = models.BooleanField(default=False, help_text='Participant agrees to the terms and conditions.')
+
+    questionnaire_responses = models.JSONField(
+        default=dict,
+        help_text='Physical readiness questionnaire responses: {"q1": "yes", "q2": "no", ...}')
+
+    medical_specify = models.TextField(null=True, blank=True,
+                                       help_text='Q13: Please specify any illness not mentioned.')
+    other_reason_specify = models.TextField(null=True, blank=True,
+                                            help_text='Q14: Please specify any other reason.')
+    allergies = models.TextField(null=True, blank=True, help_text='Allergies details.')
+
+    applicant_signature = models.FileField(
+        upload_to=_create_student_waiver_signature_path, storage=get_file_storage,
+        help_text='Applicant signature image (PNG).')
+    applicant_name = models.CharField(max_length=200)
+    applicant_date = models.DateField()
+
+    guardian_signature = models.FileField(
+        upload_to=_create_student_waiver_signature_path, storage=get_file_storage,
+        null=True, blank=True, help_text='Guardian signature image (PNG). Required if applicant is under 18.')
+    guardian_name = models.CharField(max_length=200, null=True, blank=True)
+    guardian_date = models.DateField(null=True, blank=True)
+
+    created_at = models.DateTimeField(default=datetime.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"[{self.id}] {self.first_name} {self.last_name} (Student Waiver)"

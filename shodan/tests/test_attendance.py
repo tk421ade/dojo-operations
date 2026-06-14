@@ -50,7 +50,9 @@ class AttendanceTest(TestCase):
             'status': 'active',
             'name': 'Bartolome Segui',
             'email': 'bartolome@segui.com',
-            'kyu': '10'
+            'kyu': '10',
+            'studentdocument_set-TOTAL_FORMS': '0',
+            'studentdocument_set-INITIAL_FORMS': '0',
         }
         response = self.admin_client.post(reverse('admin:shodan_student_add'), data)
         print_form_errors_from_response(response)

@@ -1,0 +1,556 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style type="text/tailwindcss">
+    .errorlist {
+        @apply mt-1 text-sm text-red-600 dark:text-red-400;
+    }
+    .errorlist li {
+        @apply list-none;
+    }
+
+    /* Table styling */
+    #questionnaire-table th {
+        @apply border border-gray-300 bg-gray-100 px-3 py-2.5 text-left text-sm font-semibold text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200;
+    }
+    #questionnaire-table td {
+        @apply border border-gray-300 px-3 py-2.5 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300;
+    }
+    #questionnaire-table td.radio-cell {
+        @apply text-center align-middle;
+    }
+    #questionnaire-table tbody tr:nth-child(even) {
+        @apply bg-gray-50/50 dark:bg-gray-800/30;
+    }
+
+    /* Signature canvas */
+    .signature-wrap {
+        @apply relative;
+    }
+    .signature-canvas {
+        @apply block rounded-lg border-2 border-gray-300 bg-white touch-none cursor-crosshair w-full dark:border-gray-600;
+        height: 200px;
+    }
+    .signature-placeholder {
+        @apply pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-300;
+    }
+</style>
+
+<style>
+    /* Yes/No toggle pills — plain CSS so :has() works natively */
+    #questionnaire-table .radio-cell > div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+    }
+    #questionnaire-table .radio-cell > div > div {
+        margin: 0;
+    }
+    #questionnaire-table .radio-cell input[type="radio"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+    #questionnaire-table .radio-cell label {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        border-radius: 0.5rem;
+        border: 1px solid rgb(209 213 219);
+        padding: 0.375rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.25rem;
+        color: rgb(75 85 99);
+        background: transparent;
+        transition: all 0.15s;
+    }
+    #questionnaire-table .radio-cell label:hover {
+        border-color: rgb(156 163 175);
+    }
+    /* Checked state — neutral gray (quick test) */
+    #questionnaire-table .radio-cell > div > div:has(input[value="yes"]:checked) label {
+        background: rgb(75 85 99);
+        border-color: rgb(75 85 99);
+        color: #fff;
+    }
+    #questionnaire-table .radio-cell > div > div:has(input[value="no"]:checked) label {
+        background: rgb(75 85 99);
+        border-color: rgb(75 85 99);
+        color: #fff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        #questionnaire-table .radio-cell label {
+            border-color: rgb(75 85 99);
+            color: rgb(156 163 175);
+        }
+        #questionnaire-table .radio-cell > div > div:has(input[value="yes"]:checked) label {
+            background: rgb(75 85 99);
+            border-color: rgb(75 85 99);
+            color: #fff;
+        }
+        #questionnaire-table .radio-cell > div > div:has(input[value="no"]:checked) label {
+            background: rgb(75 85 99);
+            border-color: rgb(75 85 99);
+            color: #fff;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content_header %}
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{{ event.name }}</h1>
+    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">Participation Form &middot; {{ dojo.name }}</p>
+{% endblock %}
+
+{% block content %}
+
+{% if already_submitted %}
+    <div class="mb-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+        <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+        <span class="text-sm font-medium text-amber-800 dark:text-amber-200">You have already signed the waiver for this event.</span>
+    </div>
+{% endif %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<form method="post" id="waiver-form" class="space-y-6">
+    {% csrf_token %}
+
+    {{ form.email2 }}
+
+    {% if form.non_field_errors %}
+        <div class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <!-- Section 1: Personal Information -->
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="mb-5 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">1</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Personal Information</h3>
+        </div>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+            <div>
+                <label>{{ form.first_name.label }} <span class="text-red-600">*</span></label>
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </div>
+            <div>
+                <label>{{ form.last_name.label }} <span class="text-red-600">*</span></label>
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </div>
+            <div class="sm:col-span-2">
+                <label>{{ form.address.label }} <span class="text-red-600">*</span></label>
+                {{ form.address }}
+                {{ form.address.errors }}
+            </div>
+            <div>
+                <label>{{ form.suburb.label }}</label>
+                {{ form.suburb }}
+                {{ form.suburb.errors }}
+            </div>
+            <div>
+                <label>{{ form.state.label }}</label>
+                {{ form.state }}
+                {{ form.state.errors }}
+            </div>
+            <div>
+                <label>{{ form.post_code.label }}</label>
+                {{ form.post_code }}
+                {{ form.post_code.errors }}
+            </div>
+            <div>
+                <label>{{ form.phone.label }} <span class="text-red-600">*</span></label>
+                {{ form.phone }}
+                {{ form.phone.errors }}
+            </div>
+            <div>
+                <label>{{ form.email.label }} <span class="text-red-600">*</span></label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+            <div>
+                <label>{{ form.date_of_birth.label }} <span class="text-red-600">*</span></label>
+                {{ form.date_of_birth }}
+                {{ form.date_of_birth.errors }}
+            </div>
+            <div>
+                <label>{{ form.current_grade.label }}</label>
+                {{ form.current_grade }}
+                {{ form.current_grade.errors }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Emergency Contact -->
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="mb-5 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">2</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Emergency Contact</h3>
+        </div>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-3">
+            <div>
+                <label>{{ form.emergency_contact_name.label }} <span class="text-red-600">*</span></label>
+                {{ form.emergency_contact_name }}
+                {{ form.emergency_contact_name.errors }}
+            </div>
+            <div>
+                <label>{{ form.emergency_contact_relationship.label }}</label>
+                {{ form.emergency_contact_relationship }}
+                {{ form.emergency_contact_relationship.errors }}
+            </div>
+            <div>
+                <label>{{ form.emergency_contact_phone.label }} <span class="text-red-600">*</span></label>
+                {{ form.emergency_contact_phone }}
+                {{ form.emergency_contact_phone.errors }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Terms & Conditions -->
+    <section class="rounded-xl border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800/50">
+        <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">3</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Terms &amp; Conditions</h3>
+        </div>
+        <div class="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 pr-6 text-sm leading-relaxed text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            <p>I hereby agree to participate in the required physical activities and exercises as required during the
+            course of the seminar at Holdfast Bay Community Centre/Brighton Karate conducted by Ysobel
+            Jarjoura, Ruben Rubio and Pamelia Tungkasiri /Central Coast Kyokushin Karate and Brighton Karate
+            on the basis of the terms and conditions set out below:</p>
+            <p>1. I hereby acknowledge an understanding of and agree to participate in physical demanding
+            activities that if done incorrectly could be detrimental to my health.</p>
+            <p>2. I acknowledge that the training, while conducted in the safest possible conditions and under
+            qualified supervision, involves physical contact and inherent risks and I accept those risks. I agree
+            to conduct myself in a safe and mature manner in accordance with the instructions from my
+            instructors. I indemnify Brighton Karate and Central Coast Kyokushin Karate, Pamelia Tungkasiri,
+            Ruben Rubio and Ysobel Jarjoura, its proprietors, agents and officers, and Matsushima Kyokushin
+            Australia Inc. (NSW) including all instructors, staff members, and students against any loss or
+            damage suffered by them in connection with my participation in the training.</p>
+            <p>3. I confirm I am physically capable of participating in this training and that I have no existing
+            medical condition which precludes or should reasonably preclude my participation.</p>
+            <p>4. I agree to release Brighton Karate and Central Kyokushin Karate, Pamelia Tungkasiri, Ruben
+            Rubio and Ysobel Jarjoura, its proprietors, agents and officers, and Matsushima Kyokushin
+            Australia Inc. (NSW) including all instructors, staff members, and students from any liability
+            whatsoever in connection with my participation in the required physical activities and exercises
+            within the Fight Like a Champion Karate Workshop. Without limitation, this includes all loss or
+            damage or injury incurred as a direct or indirect result of my participation.</p>
+            <p>5. I agree that I will conduct myself in an appropriate manner and will always act in a manner that is
+            in the best interests of Brighton Karate and Matsushima Kyokushin Australia Inc. (NSW)</p>
+            <p>6. By participating in this event and during this event only, if I am not already a member, I agree that
+            I become a member of Matsushima Kyokushin Australia Inc. (NSW).</p>
+        </div>
+        <div class="mt-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-600 dark:bg-gray-800">
+            {{ form.terms_accepted }}
+            <label for="{{ form.terms_accepted.id_for_label }}" class="cursor-pointer text-sm font-normal text-gray-700 dark:text-gray-300">{{ form.terms_accepted.label }} <span class="text-red-600">*</span></label>
+            {{ form.terms_accepted.errors }}
+        </div>
+    </section>
+
+    <!-- Section 4: Physical Readiness Questionnaire -->
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="mb-2 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">4</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Physical Readiness Questionnaire</h3>
+        </div>
+        <p class="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+            The required training and exercises within this Seminar consists of, but not limited to the
+            following: karate techniques, kihon (basics), kata (forms), kumite (sparring), pad work, conditioning
+            exercises, stretching, and fitness drills. Participants are required to complete the questionnaire
+            below as a prerequisite before starting the course for assessment of any special needs and/or
+            considerations.
+        </p>
+
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <table id="questionnaire-table" class="w-full border-collapse">
+                <thead>
+                    <tr>
+                        <th class="w-10">#</th>
+                        <th>Question</th>
+                        <th class="w-40">Yes / No</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>Has your doctor ever said you have a heart condition or vascular disease?</td><td class="radio-cell">{{ form.q1 }}</td></tr>
+                    <tr><td>2</td><td>Do you ever experience chest pains?</td><td class="radio-cell">{{ form.q2 }}</td></tr>
+                    <tr><td>3</td><td>Have you experienced any chest pain recently?</td><td class="radio-cell">{{ form.q3 }}</td></tr>
+                    <tr><td>4</td><td>Do you ever feel faint, dizzy, lose balance or lose consciousness?</td><td class="radio-cell">{{ form.q4 }}</td></tr>
+                    <tr><td>5</td><td>Has your doctor ever said you have high blood pressure (140/90)?</td><td class="radio-cell">{{ form.q5 }}</td></tr>
+                    <tr><td>6</td><td>Are you taking any medication for blood pressure or a heart condition?</td><td class="radio-cell">{{ form.q6 }}</td></tr>
+                    <tr><td>7</td><td>Are you a male over 35 or, a female over 45 and not accustomed to exercise?</td><td class="radio-cell">{{ form.q7 }}</td></tr>
+                    <tr><td>8</td><td>Do you have a bone or joint problem that could be made worse by a change in your physical activity?</td><td class="radio-cell">{{ form.q8 }}</td></tr>
+                    <tr><td>9</td><td>Do you suffer from asthma?</td><td class="radio-cell">{{ form.q9 }}</td></tr>
+                    <tr><td>10</td><td>Do you suffer from any other respiratory problems?</td><td class="radio-cell">{{ form.q10 }}</td></tr>
+                    <tr><td>11</td><td>Do you suffer from diabetes?</td><td class="radio-cell">{{ form.q11 }}</td></tr>
+                    <tr><td>12</td><td>Do you suffer from epilepsy?</td><td class="radio-cell">{{ form.q12 }}</td></tr>
+                    <tr><td>13</td><td>Do you currently suffer from any illness not mentioned here?</td><td class="radio-cell">{{ form.q13 }}</td></tr>
+                    <tr><td>14</td><td>Do you know of any other reason why you should not participate in physical activity?</td><td class="radio-cell">{{ form.q14 }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+        {{ form.q1.errors }}{{ form.q2.errors }}{{ form.q3.errors }}{{ form.q4.errors }}
+        {{ form.q5.errors }}{{ form.q6.errors }}{{ form.q7.errors }}{{ form.q8.errors }}
+        {{ form.q9.errors }}{{ form.q10.errors }}{{ form.q11.errors }}{{ form.q12.errors }}
+        {{ form.q13.errors }}{{ form.q14.errors }}
+
+        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div id="q13-specify-wrap" class="hidden">
+                <label>Q13 &mdash; Please specify: <span class="text-red-600">*</span></label>
+                {{ form.q13_specify }}
+                {{ form.q13_specify.errors }}
+            </div>
+            <div id="q14-specify-wrap" class="hidden">
+                <label>Q14 &mdash; Please specify: <span class="text-red-600">*</span></label>
+                {{ form.q14_specify }}
+                {{ form.q14_specify.errors }}
+            </div>
+        </div>
+
+        <div class="mt-4 flex items-start gap-2 rounded-lg bg-yellow-50 px-4 py-2.5 text-sm text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-200">
+            <svg class="mt-0.5 h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126Z" />
+            </svg>
+            <span>If you have answered <strong>Yes</strong> to any question, you may be required to provide a doctor's certificate before participating.</span>
+        </div>
+
+        <div class="mt-4">
+            <label>{{ form.allergies.label }}</label>
+            {{ form.allergies }}
+            {{ form.allergies.errors }}
+        </div>
+
+        <p class="mt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+            To the best of my knowledge I have answered the questions above truthfully. I understand and agree
+            that it is my responsibility to inform Brighton Karate instructors Pamelia Tungkasiri or Ruben Rubio of
+            any conditions or changes in my health, now and on going, which might affect my ability to participate
+            safely in required exercises.
+        </p>
+    </section>
+
+    <!-- Section 5: Signatures -->
+    {{ form.applicant_signature_data }}
+    {{ form.guardian_signature_data }}
+
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="mb-5 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">5</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Signature (Applicant)</h3>
+        </div>
+        <div class="signature-wrap">
+            <canvas id="applicant-canvas" class="signature-canvas" width="500" height="200"></canvas>
+            <div class="signature-placeholder" id="applicant-placeholder">Sign here using your mouse or finger</div>
+        </div>
+        <button type="button" id="applicant-clear"
+                class="mt-2 inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+            Clear
+        </button>
+        {{ form.applicant_signature_data.errors }}
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label>{{ form.applicant_name.label }} <span class="text-red-600">*</span></label>
+                {{ form.applicant_name }}
+                {{ form.applicant_name.errors }}
+            </div>
+            <div>
+                <label>{{ form.applicant_date.label }} <span class="text-red-600">*</span></label>
+                {{ form.applicant_date }}
+                {{ form.applicant_date.errors }}
+            </div>
+        </div>
+    </section>
+
+    <section id="guardian-section" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 hidden">
+        <div class="mb-2 flex items-center gap-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-sm font-bold text-gray-400 dark:border-gray-600 dark:text-gray-500">+</span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Signature (Parent or Legal Guardian)</h3>
+        </div>
+        <div class="signature-wrap">
+            <canvas id="guardian-canvas" class="signature-canvas" width="500" height="200"></canvas>
+            <div class="signature-placeholder" id="guardian-placeholder">Sign here using your mouse or finger</div>
+        </div>
+        <button type="button" id="guardian-clear"
+                class="mt-2 inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+            Clear
+        </button>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label>{{ form.guardian_name.label }}</label>
+                {{ form.guardian_name }}
+                {{ form.guardian_name.errors }}
+            </div>
+            <div>
+                <label>{{ form.guardian_date.label }}</label>
+                {{ form.guardian_date }}
+                {{ form.guardian_date.errors }}
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col items-center gap-2">
+        <button type="submit"
+                class="w-full max-w-xs rounded-lg bg-red-600 px-8 py-3 text-base font-semibold text-white shadow-md transition hover:bg-red-700 focus:ring-2 focus:ring-red-500/40 focus:outline-none sm:text-lg">
+            Submit Waiver
+        </button>
+        <p class="text-xs text-gray-400 dark:text-gray-500">Fields marked <span class="text-red-600">*</span> are required</p>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@5.0.2/dist/signature_pad.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    function resizeCanvas(canvas) {
+        var ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext("2d").scale(ratio, ratio);
+    }
+
+    var applicantCanvas = document.getElementById('applicant-canvas');
+    var applicantPlaceholder = document.getElementById('applicant-placeholder');
+    resizeCanvas(applicantCanvas);
+    var applicantPad = new SignaturePad(applicantCanvas, {
+        backgroundColor: 'rgb(255, 255, 255)',
+        penColor: 'rgb(0, 0, 0)',
+        minWidth: 1.5,
+        maxWidth: 3.5,
+    });
+
+    function hideApplicantPlaceholder() {
+        applicantPlaceholder.style.display = 'none';
+    }
+    applicantCanvas.addEventListener('mousedown', hideApplicantPlaceholder);
+    applicantCanvas.addEventListener('touchstart', hideApplicantPlaceholder);
+
+    document.getElementById('applicant-clear').addEventListener('click', function() {
+        applicantPad.clear();
+        applicantPlaceholder.style.display = '';
+    });
+
+    var guardianCanvas = document.getElementById('guardian-canvas');
+    var guardianPlaceholder = document.getElementById('guardian-placeholder');
+    resizeCanvas(guardianCanvas);
+    var guardianPad = new SignaturePad(guardianCanvas, {
+        backgroundColor: 'rgb(255, 255, 255)',
+        penColor: 'rgb(0, 0, 0)',
+        minWidth: 1.5,
+        maxWidth: 3.5,
+    });
+
+    function hideGuardianPlaceholder() {
+        guardianPlaceholder.style.display = 'none';
+    }
+    guardianCanvas.addEventListener('mousedown', hideGuardianPlaceholder);
+    guardianCanvas.addEventListener('touchstart', hideGuardianPlaceholder);
+
+    document.getElementById('guardian-clear').addEventListener('click', function() {
+        guardianPad.clear();
+        guardianPlaceholder.style.display = '';
+    });
+
+    window.addEventListener('resize', function() {
+        var appData = applicantPad.toData();
+        resizeCanvas(applicantCanvas);
+        applicantPad.clear();
+        applicantPad.fromData(appData);
+
+        var gData = guardianPad.toData();
+        resizeCanvas(guardianCanvas);
+        guardianPad.clear();
+        guardianPad.fromData(gData);
+    });
+
+    var form = document.getElementById('waiver-form');
+
+    function toggleGuardianSection() {
+        var dobInput = document.querySelector('input[name="date_of_birth"]');
+        var guardianSection = document.getElementById('guardian-section');
+        if (!dobInput || !dobInput.value) {
+            guardianSection.classList.add('hidden');
+            return;
+        }
+        var dob = new Date(dobInput.value);
+        var today = new Date();
+        var age = today.getFullYear() - dob.getFullYear();
+        var monthDiff = today.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        if (age < 18) {
+            guardianSection.classList.remove('hidden');
+        } else {
+            guardianSection.classList.add('hidden');
+        }
+    }
+
+    var dobInput = document.querySelector('input[name="date_of_birth"]');
+    if (dobInput) {
+        dobInput.addEventListener('change', toggleGuardianSection);
+        toggleGuardianSection();
+    }
+
+    function toggleSpecify(radioName, wrapId) {
+        var radios = document.querySelectorAll('input[name="' + radioName + '"]');
+        var wrap = document.getElementById(wrapId);
+        var selected = document.querySelector('input[name="' + radioName + '"]:checked');
+        if (selected && selected.value === 'yes') {
+            wrap.classList.remove('hidden');
+        } else {
+            wrap.classList.add('hidden');
+        }
+    }
+
+    ['q13', 'q14'].forEach(function(q) {
+        document.querySelectorAll('input[name="' + q + '"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                toggleSpecify(q, q + '-specify-wrap');
+            });
+        });
+        toggleSpecify(q, q + '-specify-wrap');
+    });
+
+    form.addEventListener('submit', function(e) {
+        if (applicantPad.isEmpty()) {
+            e.preventDefault();
+            applicantCanvas.scrollIntoView({behavior: 'smooth', block: 'center'});
+            applicantCanvas.style.borderColor = 'rgb(220 38 38)';
+            setTimeout(function() { applicantCanvas.style.borderColor = ''; }, 3000);
+            return false;
+        }
+
+        document.querySelector('input[name="applicant_signature_data"]').value = applicantPad.toDataURL('image/png');
+
+        if (!guardianPad.isEmpty()) {
+            document.querySelector('input[name="guardian_signature_data"]').value = guardianPad.toDataURL('image/png');
+        }
+    });
+});
+</script>
+{% endblock %}

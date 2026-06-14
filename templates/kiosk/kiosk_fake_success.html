@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+            <svg class="h-12 w-12 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Login Completed!</h1>
+        <p class="mt-2 text-lg text-gray-500 dark:text-gray-400">Authentication successful.</p>
+    </div>
+
+    <meta http-equiv="refresh" content="3;url=/">
+{% endblock %}

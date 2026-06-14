@@ -3,12 +3,15 @@ from datetime import datetime, timedelta, date
 
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from dojoconf.models import Classes
 from financial.models import Sale, Membership, MembershipProduct
 from shodan.models import Session, Student
+
+WEEKDAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
 def autocreate_sessions_for_dojo(request, dojo_id):
@@ -68,4 +71,30 @@ def autocreate_sessions_for_dojo(request, dojo_id):
             messages.success(request, f"Processing Classes {classes.name}: {already_exists_count} sessions already existed from {current_date} to {finishing_date}")
 
     return len(all_classes)
+
+
+def get_or_create_today_sessions(dojo_id):
+    today = date.today()
+    sessions = Session.objects.filter(dojo_id=dojo_id, date=today)
+    if sessions.exists():
+        return list(sessions)
+
+    today_weekday = WEEKDAY_NAMES[today.weekday()]
+    classes = Classes.objects.filter(
+        dojo_id=dojo_id,
+        days_of_week__contains=[today_weekday],
+        starting_at__lte=today,
+    ).filter(
+        Q(finishing_at__isnull=True) | Q(finishing_at__gte=today)
+    )
+
+    for cls in classes:
+        if not Session.objects.filter(dojo_id=dojo_id, date=today, classes_id=cls.pk).exists():
+            Session.objects.create(
+                dojo_id=dojo_id,
+                classes_id=cls.pk,
+                date=today,
+            )
+
+    return list(Session.objects.filter(dojo_id=dojo_id, date=today))
 

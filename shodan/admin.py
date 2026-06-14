@@ -5,10 +5,14 @@ from django.contrib import admin, messages
 from django.forms import Textarea, DateInput
 from django.shortcuts import redirect
 from django.urls import path, reverse
+from django.utils.html import format_html, mark_safe
 
 from dojoconf.admin import DojoFkFilterModelAdmin
 from shodan.service import autocreate_sessions_for_dojo
+from web.forms import QUESTIONNAIRE_QUESTIONS
 from .models import *
+
+QUESTIONNAIRE_LABELS = dict(QUESTIONNAIRE_QUESTIONS)
 
 
 
@@ -152,9 +156,210 @@ class AttendanceAdmin(DojoFkFilterModelAdmin):
 
         return super().changelist_view(request, extra_context)
 
+
+class WaiverAdminBase(DojoFkFilterModelAdmin):
+
+    formfield_overrides = {
+        models.JSONField: {'widget': Textarea(attrs={'rows': 14, 'class': 'vLargeTextField'})},
+    }
+
+    def applicant_signature_image(self, obj):
+        if obj and obj.applicant_signature:
+            return format_html(
+                '<img src="{}" style="max-width:400px; border:1px solid #ccc; border-radius:4px;" />',
+                obj.applicant_signature.url)
+        return '(no signature)'
+    applicant_signature_image.short_description = 'Current Signature'
+
+    def guardian_signature_image(self, obj):
+        if obj and obj.guardian_signature:
+            return format_html(
+                '<img src="{}" style="max-width:400px; border:1px solid #ccc; border-radius:4px;" />',
+                obj.guardian_signature.url)
+        return '(no signature)'
+    guardian_signature_image.short_description = 'Current Signature'
+
+    def questionnaire_display(self, obj):
+        if not obj:
+            return '(none)'
+        responses = obj.questionnaire_responses or {}
+        if not responses:
+            return '(none)'
+        rows = []
+        for key, label in QUESTIONNAIRE_QUESTIONS:
+            answer = responses.get(key)
+            if answer is None:
+                continue
+            color = '#c62828' if answer == 'yes' else '#2e7d32'
+            rows.append(format_html(
+                '<tr>'
+                '<td style="padding:6px 12px 6px 0; border-bottom:1px solid #eee;">{}</td>'
+                '<td style="padding:6px 0; border-bottom:1px solid #eee; font-weight:bold; color:{}; text-align:center;">{}</td>'
+                '</tr>',
+                label, color, answer.capitalize(),
+            ))
+        return mark_safe(
+            '<table style="border-collapse:collapse; font-size:13px;">'
+            '<thead><tr>'
+            '<th style="padding:6px 12px 6px 0; border-bottom:2px solid #ddd; text-align:left;">Question</th>'
+            '<th style="padding:6px 0; border-bottom:2px solid #ddd; text-align:center;">Answer</th>'
+            '</tr></thead>'
+            '<tbody>{}</tbody></table>'
+            .format(''.join(rows))
+        )
+    questionnaire_display.short_description = 'Responses'
+
+    def full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    full_name.short_description = 'Applicant'
+
+
+class EventWaiverAdmin(WaiverAdminBase):
+    list_display = ('id', 'full_name', 'event__name', 'email', 'applicant_date', 'created_at')
+    list_display_links = ('id', 'full_name')
+    list_filter = ('event',)
+    search_fields = ('first_name', 'last_name', 'email')
+    readonly_fields = (
+        'created_at', 'updated_at', 'deleted_at',
+        'dojo', 'event', 'student',
+        'first_name', 'last_name', 'address', 'suburb', 'state', 'post_code',
+        'phone', 'email', 'date_of_birth', 'current_grade',
+        'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone',
+        'terms_accepted',
+        'questionnaire_display', 'medical_specify', 'other_reason_specify', 'allergies',
+        'applicant_signature_image', 'applicant_name', 'applicant_date',
+        'guardian_signature_image', 'guardian_name', 'guardian_date',
+    )
+    fieldsets = (
+        ('Personal Information', {
+            'fields': ('dojo', 'event', 'student',
+                       'first_name', 'last_name', 'address', 'suburb', 'state', 'post_code',
+                       'phone', 'email', 'date_of_birth', 'current_grade'),
+        }),
+        ('Emergency Contact', {
+            'fields': ('emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone'),
+        }),
+        ('Terms & Conditions', {
+            'fields': ('terms_accepted',),
+        }),
+        ('Physical Readiness Questionnaire', {
+            'fields': ('questionnaire_display', 'medical_specify', 'other_reason_specify', 'allergies'),
+        }),
+        ('Edit Questionnaire Responses (Raw JSON)', {
+            'fields': ('questionnaire_responses',),
+            'classes': ('collapse',),
+            'description': 'Edit the raw JSON questionnaire data. Format: {"q1": "yes", "q2": "no", ...}',
+        }),
+        ('Applicant Signature', {
+            'fields': ('applicant_signature_image', 'applicant_name', 'applicant_date'),
+        }),
+        ('Replace Applicant Signature', {
+            'fields': ('applicant_signature',),
+            'classes': ('collapse',),
+            'description': 'Upload a new signature image to replace the current one.',
+        }),
+        ('Guardian Signature', {
+            'fields': ('guardian_signature_image', 'guardian_name', 'guardian_date'),
+        }),
+        ('Replace Guardian Signature', {
+            'fields': ('guardian_signature',),
+            'classes': ('collapse',),
+            'description': 'Upload a new guardian signature image to replace the current one.',
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def event__name(self, obj):
+        return obj.event.name
+    event__name.short_description = 'Event'
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['documentation'] = \
+            f"""<b>Help</b>: Event waivers are participation forms signed by students (including external students from other dojos) 
+            for specific <a href="{reverse('admin:dojoconf_event_changelist')}">events</a>. 
+            Each record contains personal info, medical questionnaire responses, and digital signatures."""
+        return super().changelist_view(request, extra_context)
+
+
+class StudentWaiverAdmin(WaiverAdminBase):
+    list_display = ('id', 'full_name', 'student__name', 'email', 'applicant_date', 'created_at')
+    list_display_links = ('id', 'full_name')
+    search_fields = ('first_name', 'last_name', 'email', 'student__name')
+    readonly_fields = (
+        'created_at', 'updated_at', 'deleted_at',
+        'dojo', 'student',
+        'first_name', 'last_name', 'address', 'suburb', 'state', 'post_code',
+        'phone', 'email', 'date_of_birth', 'current_grade',
+        'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone',
+        'terms_accepted',
+        'questionnaire_display', 'medical_specify', 'other_reason_specify', 'allergies',
+        'applicant_signature_image', 'applicant_name', 'applicant_date',
+        'guardian_signature_image', 'guardian_name', 'guardian_date',
+    )
+    fieldsets = (
+        ('Personal Information', {
+            'fields': ('dojo', 'student',
+                       'first_name', 'last_name', 'address', 'suburb', 'state', 'post_code',
+                       'phone', 'email', 'date_of_birth', 'current_grade'),
+        }),
+        ('Emergency Contact', {
+            'fields': ('emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone'),
+        }),
+        ('Terms & Conditions', {
+            'fields': ('terms_accepted',),
+        }),
+        ('Physical Readiness Questionnaire', {
+            'fields': ('questionnaire_display', 'medical_specify', 'other_reason_specify', 'allergies'),
+        }),
+        ('Edit Questionnaire Responses (Raw JSON)', {
+            'fields': ('questionnaire_responses',),
+            'classes': ('collapse',),
+            'description': 'Edit the raw JSON questionnaire data. Format: {"q1": "yes", "q2": "no", ...}',
+        }),
+        ('Applicant Signature', {
+            'fields': ('applicant_signature_image', 'applicant_name', 'applicant_date'),
+        }),
+        ('Replace Applicant Signature', {
+            'fields': ('applicant_signature',),
+            'classes': ('collapse',),
+            'description': 'Upload a new signature image to replace the current one.',
+        }),
+        ('Guardian Signature', {
+            'fields': ('guardian_signature_image', 'guardian_name', 'guardian_date'),
+        }),
+        ('Replace Guardian Signature', {
+            'fields': ('guardian_signature',),
+            'classes': ('collapse',),
+            'description': 'Upload a new guardian signature image to replace the current one.',
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def student__name(self, obj):
+        return obj.student.name if obj.student else '(none)'
+    student__name.short_description = 'Student'
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['documentation'] = \
+            f"""<b>Help</b>: Student waivers are registration forms signed by new students via Kiosk Mode. 
+            Each record contains personal info, medical questionnaire responses, and digital signatures. 
+            The linked <a href="{reverse('admin:shodan_student_changelist')}">student</a> record is created automatically."""
+        return super().changelist_view(request, extra_context)
+
+
 # Admin-editable models
 
 admin.site.register(Student, StudentAdmin)
 admin.site.register(Session, SessionAdmin)
 admin.site.register(Attendance, AttendanceAdmin)
+admin.site.register(EventWaiver, EventWaiverAdmin)
+admin.site.register(StudentWaiver, StudentWaiverAdmin)
 

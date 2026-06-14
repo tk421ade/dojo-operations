@@ -5,18 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dojo Administration</title>
     <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+        }
+    </script>
+    <style type="text/tailwindcss">
+        input[type="text"], input[type="email"], input[type="date"], input[type="tel"],
+        input[type="number"], input[type="password"], textarea, select {
+            @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm transition
+                   focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none
+                   dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
+                   dark:focus:border-red-500 dark:focus:ring-red-500/30;
+        }
+        input[type="checkbox"] {
+            @apply h-5 w-5 rounded border border-gray-300 text-red-600 transition
+                   focus:ring-2 focus:ring-red-500/30
+                   dark:border-gray-600 dark:bg-gray-800;
+        }
+        input[type="radio"] {
+            @apply h-4 w-4 border border-gray-300 text-red-600 transition
+                   focus:ring-2 focus:ring-red-500/30
+                   dark:border-gray-600 dark:bg-gray-800;
+        }
+        label {
+            @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+        }
+        @media (prefers-color-scheme: dark) {
+            input[type="date"]::-webkit-calendar-picker-indicator {
+                filter: invert(1);
+            }
+        }
+    </style>
     {% block style %}{% endblock %}
     {% block js %}{% endblock %}
 </head>
-<body>
-<header>
-<main>
-    <header>{% block content_header %}{% endblock %}</header>
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    <footer></footer>
-</main>
+<body class="min-h-screen bg-gray-50 text-gray-900 antialiased transition-colors dark:bg-gray-900 dark:text-gray-100">
+    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:py-12">
+        <header class="mb-8 text-center">
+            {% if dojo.logo %}
+                <div class="mb-4 inline-block rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700">
+                    <img src="{{ dojo.logo.url }}" alt="{{ dojo.name }}" class="mx-auto max-h-28">
+                </div>
+            {% endif %}
+            {% block content_header %}{% endblock %}
+        </header>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 </body>
 </html>

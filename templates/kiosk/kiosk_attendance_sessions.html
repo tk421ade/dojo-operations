@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content_header %}
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Select Your Class</h1>
+    <p class="mt-1 text-lg text-gray-500 dark:text-gray-400">{{ student.name }} &middot; {{ dojo.name }}</p>
+{% endblock %}
+
+{% block content %}
+    <div class="space-y-4 py-4">
+        {% for session in sessions %}
+            <form method="post" action="/kiosk/attendance/session/{{ session.id }}" class="block">
+                {% csrf_token %}
+                <button type="submit"
+                        class="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-green-400 hover:bg-green-50 hover:shadow-md focus:ring-2 focus:ring-green-500/30 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:hover:border-green-600 dark:hover:bg-gray-700/50">
+                    <div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ session.name }}</p>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ session.time_from|time:"g:i A" }} &ndash; {{ session.time_to|time:"g:i A" }}</p>
+                    </div>
+                    <svg class="h-6 w-6 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                </button>
+            </form>
+        {% endfor %}
+    </div>
+
+    <div class="mt-6 text-center">
+        <a href="/kiosk/attendance" class="text-sm text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+            &larr; Back
+        </a>
+    </div>
+{% endblock %}

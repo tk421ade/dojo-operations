@@ -98,6 +98,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'web.context_processors.dojo_context',
             ],
         },
     },
@@ -198,3 +199,6 @@ STATICFILES_DIRS = [
 STATIC_URL = 'static/'
 if not DEBUG:
     STATIC_ROOT = '/var/www/static'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

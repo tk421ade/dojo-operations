@@ -1,11 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content_header %}
-    <h1 class="text-3xl">Karate Dojo Management</h1>
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Karate Dojo Management</h1>
 {% endblock %}
 
 {% block content %}
-    <main class="flex flex-col items-center">
-        <p>The dojo with the hostname '{{ hostname }}' is not configured correctly.</p>
-    </main>
+    <div class="rounded-lg border border-red-300 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950/40">
+        <div class="flex items-start gap-3">
+            <svg class="mt-0.5 h-6 w-6 flex-shrink-0 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <div>
+                <h2 class="text-lg font-semibold text-red-800 dark:text-red-200">Configuration Error</h2>
+                <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                    The dojo with the hostname <code class="rounded bg-red-100 px-1.5 py-0.5 font-mono text-red-900 dark:bg-red-900/50 dark:text-red-100">'{{ hostname }}'</code> is not configured correctly.
+                </p>
+            </div>
+        </div>
+    </div>
 {% endblock %}
