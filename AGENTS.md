@@ -67,6 +67,8 @@ All commands use the virtualenv at `venv/`. The Makefile wraps common operations
 | Pull latest from git | `make update` |
 | Restart gunicorn (prod) | `make restart_gunicorn` |
 | Full prod update | `make update_project` (pull + prepare + collectstatic + restart) |
+| Deploy to production (from local) | `make deploy` (requires `.deploy.env` with `DEPLOY_HOST`) |
+| Deploy on server (when SSH'd in) | `make deploy-local` |
 | Clear expired sessions | `make clearsessions` |
 | Load prod fixtures (groups) | `make load_prod_fixtures` |
 | Load dev fixtures (auth + dojoconf) | `make load_dev_fixtures` |
@@ -96,6 +98,8 @@ Tests use Django's `TestCase` with fixtures from `fixtures/`. Test database is `
 | `MATRIX_HOMESERVER_URL` | Matrix homeserver URL for production error alerts |
 | `MATRIX_ACCESS_TOKEN` | Matrix access token for error alerts |
 | `MATRIX_ROOM_ID` | Matrix room ID for error alerts |
+| `DEPLOY_HOST` | SSH destination for remote deploy (in `.deploy.env`, format: `user@hostname`) |
+| `DEPLOY_PATH` | Remote project path (default: `/opt/dojo-operations`, set in `.deploy.env`) |
 
 ## Code Conventions
 
@@ -129,6 +133,8 @@ Tests use Django's `TestCase` with fixtures from `fixtures/`. Test database is `
 
 ## Deployment
 
+- `make deploy` runs from the developer's local machine: it SSHs into the production server (defined by `DEPLOY_HOST` in a gitignored `.deploy.env` file) and runs `make deploy-local` remotely (db backup, git pull, prepare, collectstatic, migrate, restart gunicorn).
+- `make deploy-local` runs the same deployment steps directly on the server (for when you are SSH'd in).
 - Production runs on Debian 12 with Gunicorn (systemd socket activation) + Nginx (TLS via Let's Encrypt).
 - PostgreSQL database named `shodan`.
 - `debian-installer.sh` provisions the full server: git clone, venv, gunicorn service, nginx config, PostgreSQL, iptables rules.

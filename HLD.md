@@ -516,6 +516,8 @@ M10 - Currency is limited to AUD (`CURRENCIES = [('AUD', 'AUD')]`).
 M11 - The Makefile is the canonical entry point for all development and deployment operations.
 M12 - The production installer (`debian-installer.sh`) provisions a complete Debian 12 server: git clone, virtualenv, gunicorn (systemd socket activation), Nginx (reverse proxy with TLS), PostgreSQL, and iptables rules. SSL certificates are managed externally via certbot.
 M13 - `ALLOWED_HOSTS = ['*']` in production. This is a known security concern for future hardening.
+M14 - Remote deployment: `make deploy` is initiated from the developer's local machine via SSH. The SSH destination is defined by `DEPLOY_HOST` (format: `user@hostname`) in a gitignored `.deploy.env` file at the project root. The Makefile SSHs into the server, enters the remote project path (`DEPLOY_PATH`, defaults to `/opt/dojo-operations`), and runs `make deploy-local` there — which performs: database backup, git pull, dependency install, collectstatic, migrate, and gunicorn restart. The SSH user must have sudo/root privileges (required for `systemctl` and `pg_dump`). The file `.deploy.env` must never be committed.
+M15 - The server-local deployment commands remain available as `make deploy-local` for use when the developer is directly SSH'd into the production server. This preserves the original deployment workflow for emergency on-server fixes.
 
 # Data Model Relationships
 

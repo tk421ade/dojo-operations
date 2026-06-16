@@ -1,4 +1,9 @@
 
+# Deploy configuration — gitignored, create locally
+-include .deploy.env
+
+DEPLOY_HOST  ?=
+DEPLOY_PATH  ?= /opt/dojo-operations
 
 clean:
 	rm -rf venv
@@ -59,7 +64,18 @@ db-backup:
 	sudo -u postgres pg_dump shodan > backups/shodan_$(shell date +%Y%m%d_%H%M%S).sql
 	@echo "Database backup saved to backups/"
 
-deploy: db-backup update_project migrate restart_gunicorn
+deploy-local: db-backup update_project migrate restart_gunicorn
+
+deploy:
+	@if [ -z "$(DEPLOY_HOST)" ]; then \
+		echo "ERROR: DEPLOY_HOST is not set."; \
+		echo "Create .deploy.env with:  DEPLOY_HOST=user@hostname"; \
+		echo "Or run:  DEPLOY_HOST=user@hostname make deploy"; \
+		exit 1; \
+	fi
+	@echo "Deploying to $(DEPLOY_HOST):$(DEPLOY_PATH)..."
+	ssh $(DEPLOY_HOST) "cd $(DEPLOY_PATH) && make deploy-local"
+	@echo "Deployment complete."
 
 clearsessions:
 	./venv/bin/python manage.py clearsessions
