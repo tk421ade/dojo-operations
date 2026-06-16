@@ -85,6 +85,11 @@ class DojoAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
             'description': 'Upload a dojo logo (transparent PNG designed for white background). Displayed on all public pages.',
         }),
+        ('Footer & Privacy', {
+            'fields': ('privacy_policy_url',),
+            'classes': ('collapse',),
+            'description': 'Optional external URL to the dojo privacy policy. When set, a "Privacy Policy" link is shown in the public site footer alongside the copyright notice.',
+        }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at', 'deleted_at'),
             'classes': ('collapse',),

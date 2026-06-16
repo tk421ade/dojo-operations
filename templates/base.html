@@ -59,6 +59,21 @@
         <main>
             {% block content %}{% endblock %}
         </main>
+        {% block footer %}
+            {% if not request.session.kiosk_mode %}
+                <footer class="mt-10 border-t border-gray-200 pt-6 text-center text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                    <p>
+                        &copy; {% if current_year == 2025 %}2025{% else %}2025&ndash;{{ current_year }}{% endif %}{% if dojo %} {{ dojo.name }}{% endif %}. All rights reserved.
+                    </p>
+                    {% if dojo and dojo.privacy_policy_url %}
+                        <a href="{{ dojo.privacy_policy_url }}" target="_blank" rel="noopener noreferrer"
+                           class="mt-1 inline-block font-medium text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                            Privacy Policy
+                        </a>
+                    {% endif %}
+                </footer>
+            {% endif %}
+        {% endblock %}
     </div>
 </body>
 </html>

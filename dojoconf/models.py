@@ -40,6 +40,7 @@ class Dojo(models.Model):
     kiosk_locked = models.BooleanField(default=False, help_text='When True, all kiosk PIN entry is blocked. Admin must unlock.')
     kiosk_failed_attempts = models.IntegerField(default=0, help_text='Consecutive failed kiosk PIN attempts. Resets on success or admin unlock.')
     logo = models.FileField(upload_to=_create_dojo_logo_path, storage=get_public_file_storage, null=True, blank=True, help_text='Dojo logo (transparent PNG designed for white background). Displayed on all public pages.')
+    privacy_policy_url = models.URLField(max_length=500, null=True, blank=True, help_text='External URL to the dojo privacy policy page. Shown as a "Privacy Policy" link in the public site footer when set.')
     created_at = models.DateTimeField(default=tz_now)
     updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

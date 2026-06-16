@@ -119,7 +119,7 @@ MT7 - When a non-superuser staff user creates a new dojo, they are automatically
 
 # Use Case U1 - Dojo Configuration
 
-U1.1 - A `Dojo` represents a karate training organization. Fields: name, email, timezone (pytz timezone), hostname, kiosk_pin (4-6 digit PIN for Kiosk Mode activation), logo (image file stored in local public storage, displayed on all public pages), users (M2M to Django `User`), created_at, updated_at, deleted_at.
+U1.1 - A `Dojo` represents a karate training organization. Fields: name, email, timezone (pytz timezone), hostname, kiosk_pin (4-6 digit PIN for Kiosk Mode activation), logo (image file stored in local public storage, displayed on all public pages), privacy_policy_url (nullable external URL to the dojo's own privacy policy page; shown as a "Privacy Policy" link in the site footer when set), users (M2M to Django `User`), created_at, updated_at, deleted_at.
 U1.2 - A `Dojo` is linked to one or more `User` accounts (staff). Non-superuser users can only see dojos they are assigned to.
 U1.3 - An `Address` represents a physical training location. Fields: dojo FK, name (friendly name), street, city, state, zip_code, country, latitude, longitude. Used by `Classes` and `Event` to define where sessions are held.
 U1.4 - `Address` latitude/longitude are used for geo-verification during student attendance registration (see U4).
@@ -332,6 +332,12 @@ U8.9 - **Error states**: Django `errorlist` elements are styled as red text. Ale
 U8.10 - Admin pages (`/admin/`) continue to use Django's built-in admin CSS and are **not** part of the Tailwind design system.
 
 U8.11 - **Dojo logo**: when a `Dojo.logo` is uploaded, it is displayed on all public pages via the `base.html` header. The logo is rendered on a white card surface (`bg-white rounded-xl`) regardless of light/dark mode, so transparent PNGs designed for white backgrounds always display correctly. When no logo is set, the text-only header is shown (current behavior). A context processor (`web.context_processors.dojo_context`) makes the `dojo` object available in all templates.
+
+U8.12 - **Site footer**: `base.html` renders a footer at the bottom of all public pages. The footer shows a copyright notice: "© 2025–{current year} {dojo name}. All rights reserved." The `{current year}` is dynamic and auto-updates each year; it is provided to all templates via the `dojo_context` context processor (added `current_year` key). The `{dojo name}` is omitted when no dojo is resolved (e.g. the bad-configuration page).
+
+U8.13 - **Privacy policy link**: the footer displays a "Privacy Policy" link only when the resolved `Dojo.privacy_policy_url` (per-dojo external URL) is set. The link opens in a new browser tab (`target="_blank"`) with `rel="noopener noreferrer"` for security. When no dojo is resolved or the field is empty, the link is omitted (the copyright notice is still shown). Each dojo configures its own privacy policy URL in the admin, making this multi-tenant safe.
+
+U8.14 - **Footer exclusion from Kiosk Mode**: the footer is suppressed on kiosk pages so the compact no-scroll tablet layout (per U9.7a) is preserved. This is implemented via a `request.session.kiosk_mode` check in the footer block of `base.html` — kiosk-active pages render without the footer, with no per-template overrides required. Transitional PIN-entry pages (activate/deactivate) where `kiosk_mode` is not yet set are unaffected and may show the footer.
 
 # Use Case U9 - Kiosk Mode
 
