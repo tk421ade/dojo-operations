@@ -1,0 +1,82 @@
+{% extends "two_factor/_base.html" %}
+{% load i18n %}
+{% load two_factor_tags %}
+
+{% block content %}
+  <div class="mb-6 text-center">
+    <h1 class="auth-h1">{% trans "Account security" %}</h1>
+    <p class="auth-sub">{% trans "Manage your two-factor authentication and backup codes." %}</p>
+  </div>
+
+  {% if default_device %}
+    <div class="space-y-4">
+      {# Primary method #}
+      <div class="section-card">
+        <div class="flex items-start gap-3">
+          <div class="auth-icon auth-icon-green h-10 w-10 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{% trans "Primary method" %}</p>
+            <p class="mt-0.5 text-sm font-medium text-gray-900 dark:text-gray-100">{{ default_device|as_action }}</p>
+            <p class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>{% trans "Active" %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {# Backup phones (if phone plugin enabled) #}
+      {% if available_phone_methods %}
+        <div class="section-card">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{% trans "Backup phone numbers" %}</h2>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{% trans "Used to send backup codes if your primary device isn't available." %}</p>
+          {% if backup_phones %}
+            <ul class="mt-3 space-y-2">
+              {% for phone in backup_phones %}
+                <li class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
+                  <span class="text-gray-700 dark:text-gray-200">{{ phone|as_action }}</span>
+                  <form method="post" action="{% url 'two_factor:phone_delete' phone.id %}" onsubmit="return confirm({% trans 'Are you sure?' %})">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm">{% trans "Remove" %}</button>
+                  </form>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <a href="{% url 'two_factor:phone_create' %}" class="btn btn-secondary btn-block btn-sm mt-3">{% trans "Add phone number" %}</a>
+        </div>
+      {% endif %}
+
+      {# Backup tokens #}
+      <div class="section-card">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{% trans "Backup codes" %}</h2>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          {% blocktrans count counter=backup_tokens trimmed %}
+            {{ counter }} code remaining.
+          {% plural %}
+            {{ counter }} codes remaining.
+          {% endblocktrans %}
+          {% trans "Use one if you lose your device." %}
+        </p>
+        <a href="{% url 'two_factor:backup_tokens' %}" class="btn btn-secondary btn-block btn-sm mt-3">{% trans "View codes" %}</a>
+      </div>
+
+      {# Disable #}
+      <div class="section-card border-red-200 dark:border-red-900/40">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{% trans "Disable two-factor" %}</h2>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{% trans "Not recommended &mdash; this weakens your account security." %}</p>
+        <a href="{% url 'two_factor:disable' %}" class="btn btn-secondary btn-block btn-sm mt-3">{% trans "Disable two-factor authentication" %}</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="auth-card text-center">
+      <div class="auth-icon auth-icon-blue mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 001.74-2.99l-7.07-12a2 2 0 00-3.48 0l-7.07 12A2 2 0 004.93 19z" /></svg>
+      </div>
+      <h1 class="auth-h1">{% trans "Two-factor is off" %}</h1>
+      <p class="auth-sub">{% trans "Enable it to protect your account against compromised passwords." %}</p>
+      <a href="{% url 'two_factor:setup' %}" class="btn btn-primary btn-lg btn-block mt-6">{% trans "Enable two-factor authentication" %}</a>
+    </div>
+  {% endif %}
+{% endblock %}

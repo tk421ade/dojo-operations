@@ -1,0 +1,81 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+{% load two_factor_tags %}
+
+{% block extra_media %}{{ form.media }}{% endblock %}
+
+{% block content %}
+  <div class="auth-card">
+    {% if wizard.steps.current == 'auth' %}
+      <div class="text-center">
+        <div class="auth-icon auth-icon-red mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0-1.105.895-2 2-2s2 .895 2 2m-7 0V8a4 4 0 118 0v3m-9 0h10a1 1 0 011 1v7a1 1 0 01-1 1H7a1 1 0 01-1-1v-7a1 1 0 011-1z" />
+          </svg>
+        </div>
+        <h1 class="auth-h1">{% trans "Sign in" %}</h1>
+        <p class="auth-sub">{% trans "Enter your staff credentials to continue." %}</p>
+      </div>
+    {% elif wizard.steps.current == 'token' %}
+      <div class="text-center">
+        <div class="auth-icon auth-icon-blue mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <h1 class="auth-h1">{% trans "Verification code" %}</h1>
+        <p class="auth-sub">{{ device|as_verbose_action }}</p>
+      </div>
+    {% elif wizard.steps.current == 'backup' %}
+      <div class="text-center">
+        <div class="auth-icon auth-icon-amber mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-10.89 3.5M9 17a6 6 0 01-6-6 6 6 0 011.5-3.97M5 5l14 14" />
+          </svg>
+        </div>
+        <h1 class="auth-h1">{% trans "Use a backup code" %}</h1>
+        <p class="auth-sub">{% trans "Enter one of the one-time codes you saved earlier." %}</p>
+      </div>
+    {% endif %}
+
+    <form action="" method="post" class="mt-6 space-y-4">
+      {% csrf_token %}
+      {% include "two_factor/_wizard_forms.html" %}
+      <input type="submit" value="" hidden />
+
+      {% if other_devices %}
+        <div class="divider pt-5">
+          <p class="mb-2 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{% trans "Or try another method" %}</p>
+          {% for other in other_devices %}
+            <button name="challenge_device" value="{{ other.persistent_id }}" type="submit" class="btn btn-secondary btn-block mb-2">
+              {{ other|as_action }}
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="flex items-center gap-3 pt-1">
+        {% if wizard.steps.prev %}
+          <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" class="btn btn-secondary btn-lg">
+            {% trans "Back" %}
+          </button>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-lg flex-1">
+          {% if wizard.steps.current == 'auth' %}
+            {% trans "Continue" %}
+          {% else %}
+            {% trans "Verify" %}
+          {% endif %}
+        </button>
+      </div>
+
+      {% if backup_tokens %}
+        <div class="pt-1 text-center">
+          <button name="wizard_goto_step" type="submit" value="backup" class="text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+            {% trans "Use a backup code instead" %}
+          </button>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+{% endblock %}

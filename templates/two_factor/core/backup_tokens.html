@@ -1,0 +1,40 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="auth-card">
+    <div class="text-center">
+      <div class="auth-icon auth-icon-amber mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        </svg>
+      </div>
+      <h1 class="auth-h1">{% trans "Backup codes" %}</h1>
+      <p class="auth-sub">{% trans "Each code works once when you don't have your device. Keep them somewhere safe." %}</p>
+    </div>
+
+    {% if device.token_set.count %}
+      <div class="mt-6 grid grid-cols-2 gap-2">
+        {% for token in device.token_set.all %}
+          <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-center font-mono text-sm tracking-widest text-gray-900 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-100">
+            {{ token.token }}
+          </div>
+        {% endfor %}
+      </div>
+      <p class="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">{% trans "Print or save these before leaving this page." %}</p>
+    {% else %}
+      <div class="mt-6 rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+        {% trans "You don't have any backup codes yet." %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="mt-6 space-y-3">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="flex items-center gap-3 pt-1">
+        <a href="{% url 'two_factor:profile' %}" class="btn btn-secondary btn-lg flex-1">{% trans "Back" %}</a>
+        <button type="submit" class="btn btn-primary btn-lg flex-1">{% trans "Generate new codes" %}</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

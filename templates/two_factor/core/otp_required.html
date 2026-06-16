@@ -1,0 +1,20 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="auth-card text-center">
+    <div class="auth-icon auth-icon-amber mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 001.74-2.99l-7.07-12a2 2 0 00-3.48 0l-7.07 12A2 2 0 004.93 19z" />
+      </svg>
+    </div>
+    <h1 class="auth-h1">{% trans "Two-factor required" %}</h1>
+    <p class="auth-sub">{% trans "This area needs two-factor authentication. Enable it to keep your account secure and continue." %}</p>
+    <div class="mt-6 space-y-3">
+      <a href="{% url 'two_factor:setup' %}" class="btn btn-primary btn-lg btn-block">
+        {% trans "Enable two-factor authentication" %}
+      </a>
+      <a href="javascript:history.go(-1)" class="btn btn-ghost btn-block text-sm">{% trans "Go back" %}</a>
+    </div>
+  </div>
+{% endblock %}

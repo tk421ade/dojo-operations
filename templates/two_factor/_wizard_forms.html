@@ -1,0 +1,15 @@
+{% load i18n %}
+{{ wizard.management_form }}
+{% if wizard.form.non_form_errors %}{{ wizard.form.non_form_errors }}{% endif %}
+{% for field in wizard.form %}
+  <div class="mb-4">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ field.help_text }}</p>
+    {% endif %}
+    {% for error in field.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    {% endfor %}
+  </div>
+{% endfor %}

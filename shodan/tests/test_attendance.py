@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from sqlparse.engine.grouping import group
 
 from dojoconf.models import Dojo, Classes, Event
-from dojoconf.tests.utils import print_form_errors_from_response
+from dojoconf.tests.utils import print_form_errors_from_response, login_verified
 from shodan.models import Session, Student, Attendance
 
 
@@ -29,6 +29,7 @@ class AttendanceTest(TestCase):
     def test_attendance(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # create a session
         dojo = Dojo.objects.first()

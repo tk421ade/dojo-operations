@@ -435,6 +435,72 @@ U9.36 - **Locked state behaviour**:
 
 U9.37 - **Admin unlock**: The Dojo admin page (`DojoAdmin`) includes `kiosk_locked` (editable checkbox) and `kiosk_failed_attempts` (readonly) in the Kiosk Mode fieldset. An "Unlock kiosk mode" admin action (`unlock_kiosk`) resets both fields to their defaults in one click. Unchecking `kiosk_locked` and saving also works but does not reset the counter (the action does both).
 
+# Use Case U10 - Two-Factor Authentication (Staff)
+
+## Overview
+
+U10.1 - Two-Factor Authentication (2FA) is mandatory for all staff users (every Django `User` with `is_staff=True`, including superusers and non-superuser dojo staff). It protects the Django admin and staff-only views against compromised passwords.
+
+U10.2 - 2FA does NOT apply to the student portal (email-only login, U2.8/N4) or Kiosk Mode (PIN-based, U9). Those tracks remain single-factor by design; students are never Django users.
+
+## Methods
+
+U10.3 - The primary second factor is **TOTP** (Time-based One-Time Password), compatible with standard authenticator apps (Google Authenticator, Authy, 1Password, Microsoft Authenticator). During enrollment the user scans a QR code and enters a verification code to confirm the device.
+
+U10.4 - **Backup/recovery codes** (one-time static codes) are generated at enrollment via `otp_static`. The codes are shown on screen immediately after TOTP setup with a "save these or you will be locked out" warning. Each backup code may be used once in place of a TOTP code (e.g., if the phone is lost). Used codes are consumed.
+
+U10.5 - SMS and hardware-key methods are intentionally NOT enabled (no telephony dependency; TOTP covers the threat model).
+
+## Enforcement
+
+U10.6 - Every staff user must have at least one TOTP device. A staff user without any OTP device is forced into the enrollment wizard on next login and cannot reach the admin until enrollment completes.
+
+U10.7 - The Django admin is gated by reassigning the default `admin.site` to a subclass of `two_factor.admin.AdminSiteOTPRequiredMixin` at startup (in `shodan/urls.py`). This overrides `AdminSite.has_permission` to require `request.user.is_verified()`, so any unverified user (with or without a device) is redirected to the login flow instead of reaching the admin. Student and kiosk views are unaffected (they do not use the admin or `request.user`).
+
+U10.8 - Because `/admin/` is now an OTP-protected view, `OTPRequiredMixin.is_otp_view()` recognises it, and the two_factor login wizard automatically redirects a no-device staff user to the enrollment wizard (`two_factor:setup`) after password authentication (with `?next=/admin/` preserved in the session). This forces enrollment on next login without any custom middleware.
+
+U10.9 - `django_otp.middleware.OTPMiddleware` is placed immediately after `django.contrib.auth.middleware.AuthenticationMiddleware` and before the project's custom middleware (Timezone, DojoPermissions, DojoConfiguration), because `DojoPermissionsMiddleware` reads `request.user` and must see a fully-resolved, verification-aware user.
+
+U10.9a - The single non-admin staff view, `protected_file` (`/protected/files/...`), is additionally decorated with `django_otp.decorators.otp_required` so it also requires a verified session.
+
+## Enrollment Flow
+
+U10.10 - A staff user navigating to `/admin/` (or any staff view) while unauthenticated is redirected to `/account/login/` (`two_factor:login`): a two-step wizard — (1) username + password, (2) TOTP token when a device exists. On the first login with no device, the token step is skipped.
+
+U10.11 - After password authentication, if the user has no device, `TwoFactorEnforcementMiddleware` redirects them to `/account/setup/` (`two_factor:setup`): the wizard generates a TOTP device, displays the QR code, and asks for a verification token. On a valid token the device is confirmed and the session is marked verified.
+
+U10.12 - On setup completion the user is redirected to the **backup-codes reveal** view (`/account/backup-reveal/`), which generates (if absent) and displays the one-time backup codes with a prominent lockout warning, followed by a "Continue to admin" link.
+
+U10.13 - Once verified (TOTP or backup code), the user reaches `/admin/` normally.
+
+## URL Layout
+
+U10.14 - `/account/login/` — Two-step login wizard (password + token).
+U10.15 - `/account/two_factor/setup/` — TOTP enrollment wizard (QR + verification).
+U10.16 - `/account/two_factor/qrcode/` — QR code image (used by setup).
+U10.17 - `/account/two_factor/setup/complete/` — Setup completion (redirects to `next`).
+U10.18 - `/account/two_factor/` — Profile: manage devices / regenerate backup tokens.
+U10.19 - `/account/two_factor/backup/tokens/` — View/generate backup tokens.
+U10.20 - `/account/two_factor/backup-reveal/` — Post-setup backup-codes reveal screen (project-specific).
+U10.20a - Staff log out via the admin's built-in `/admin/logout/`.
+
+## Recovery (Lost Device)
+
+U10.21 - If a staff user loses their authenticator device AND has no backup codes remaining, the server administrator removes the user's OTP devices directly:
+- `./venv/bin/python manage.py shell` → delete the user's `TOTPDevice` and `StaticDevice` rows → the user re-enrolls on next login.
+- This requires server shell access and is the documented break-glass procedure. Backup codes (U10.4) make this rare.
+
+## Dependencies & Data Model
+
+U10.22 - Added dependencies: `django-otp`, `django-two-factor-auth`, `django-formtools` (transitive), `qrcode`.
+U10.23 - Added apps: `django_otp`, `django_otp.plugins.otp_totp`, `django_otp.plugins.otp_static`, `two_factor`.
+U10.24 - Added tables (via migrations): `otp_totp_totpdevice`, `otp_static_staticdevice`, `otp_static_statictoken`, and two_factor's device tables.
+U10.25 - No custom `User` model is introduced; 2FA attaches to the stock Django `User`.
+
+## Deployment Note
+
+U10.26 - On the first production deploy that includes 2FA, every existing staff user is forced through enrollment on their next login. Coordinate with staff beforehand so they have an authenticator app ready.
+
 # Important Considerations
 
 M1 - The system is built with Django 5.2 and PostgreSQL. No SQLite fallback in production (SQLite code is commented out in settings).

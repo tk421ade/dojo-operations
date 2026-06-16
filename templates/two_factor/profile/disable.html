@@ -1,0 +1,24 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="auth-card">
+    <div class="text-center">
+      <div class="auth-icon auth-icon-red mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 001.74-2.99l-7.07-12a2 2 0 00-3.48 0l-7.07 12A2 2 0 004.93 19z" />
+        </svg>
+      </div>
+      <h1 class="auth-h1">{% trans "Disable two-factor?" %}</h1>
+      <p class="auth-sub">{% trans "This weakens your account security. You'll sign in with only a password." %}</p>
+    </div>
+    <form method="post" class="mt-6">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="mt-2 flex items-center gap-3">
+        <a href="{% url 'two_factor:profile' %}" class="btn btn-secondary btn-lg flex-1">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn btn-danger btn-lg flex-1">{% trans "Disable" %}</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

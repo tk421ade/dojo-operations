@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from sqlparse.engine.grouping import group
 
 from dojoconf.models import Dojo, Classes, Event
-from dojoconf.tests.utils import print_form_errors_from_response
+from dojoconf.tests.utils import print_form_errors_from_response, login_verified
 from shodan.models import Session
 
 
@@ -27,6 +27,7 @@ class SessionTest(TestCase):
     def test_admin_cant_choose_both_classes_and_event_fails(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # get a dojo, class and event
         dojo = Dojo.objects.first()
@@ -57,6 +58,7 @@ class SessionTest(TestCase):
     def test_admin_must_choose_one_classes_and_event(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # get a dojo, class and event
         dojo = Dojo.objects.first()
@@ -83,6 +85,7 @@ class SessionTest(TestCase):
     def test_admin_create_class_from_classes(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # get a dojo, class and event
         dojo = Dojo.objects.first()
@@ -115,6 +118,7 @@ class SessionTest(TestCase):
     def test_admin_create_class_from_event_no_times_or_duration(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # get a dojo, class and event
         dojo = Dojo.objects.first()
@@ -143,6 +147,7 @@ class SessionTest(TestCase):
     def test_admin_create_class_from_event(self):
 
         self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
 
         # get a dojo, class and event
         dojo = Dojo.objects.first()

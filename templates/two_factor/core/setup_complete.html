@@ -1,0 +1,26 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="auth-card text-center">
+    <div class="auth-icon auth-icon-green mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+    <h1 class="auth-h1">{% trans "Two-factor enabled" %}</h1>
+    <p class="auth-sub">{% trans "Your account is now protected with an authenticator app." %}</p>
+
+    {% if not phone_methods %}
+      <a href="{% url 'two_factor:profile' %}" class="btn btn-secondary btn-lg btn-block mt-6">
+        {% trans "Back to account security" %}
+      </a>
+    {% else %}
+      <p class="auth-sub mt-4">{% trans "Add a phone number so you can recover access if you lose your device." %}</p>
+      <div class="mt-6 space-y-3">
+        <a href="{% url 'two_factor:phone_create' %}" class="btn btn-primary btn-lg btn-block">{% trans "Add phone number" %}</a>
+        <a href="{% url 'two_factor:profile' %}" class="btn btn-ghost btn-block text-sm">{% trans "Skip for now" %}</a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

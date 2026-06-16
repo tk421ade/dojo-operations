@@ -1,0 +1,113 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>{% block title %}{% trans "Shodan Admin" %}{% endblock %}</title>
+    <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+        }
+    </script>
+    <style type="text/tailwindcss">
+        input[type="text"], input[type="email"], input[type="date"], input[type="tel"],
+        input[type="number"], input[type="password"], textarea, select {
+            @apply w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-gray-900 shadow-sm transition
+                   placeholder:text-gray-400
+                   focus:border-red-500 focus:ring-2 focus:ring-red-500/25 focus:outline-none
+                   dark:border-gray-700 dark:bg-gray-800/70 dark:text-gray-100 dark:placeholder:text-gray-500
+                   dark:focus:border-red-500 dark:focus:ring-red-500/25;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            @apply h-5 w-5 rounded border border-gray-300 text-red-600 transition
+                   focus:ring-2 focus:ring-red-500/30
+                   dark:border-gray-600 dark:bg-gray-800;
+        }
+        label {
+            @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+        }
+
+        /* ---------- Brand ---------- */
+        .brand-mark {
+            @apply flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-base font-bold text-white shadow-sm shadow-red-600/30;
+        }
+        .brand-name { @apply text-sm font-semibold leading-tight text-gray-900 dark:text-white; }
+        .brand-sub  { @apply text-[11px] leading-tight text-gray-500 dark:text-gray-400; }
+
+        /* ---------- Card ---------- */
+        .auth-card {
+            @apply rounded-2xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-900/5 sm:p-8
+                   dark:border-gray-800 dark:bg-gray-900/70 dark:shadow-black/20;
+        }
+        .section-card {
+            @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/60;
+        }
+
+        /* ---------- Typography ---------- */
+        .auth-h1  { @apply text-xl font-semibold tracking-tight text-gray-900 dark:text-white; }
+        .auth-sub { @apply mt-1.5 text-sm text-gray-500 dark:text-gray-400; }
+
+        /* ---------- Icon badge ---------- */
+        .auth-icon { @apply mx-auto flex h-12 w-12 items-center justify-center rounded-full; }
+        .auth-icon-red    { @apply bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400; }
+        .auth-icon-green  { @apply bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400; }
+        .auth-icon-amber  { @apply bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400; }
+        .auth-icon-blue   { @apply bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400; }
+
+        /* ---------- Buttons ---------- */
+        .btn {
+            @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition
+                   focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2
+                   disabled:cursor-not-allowed disabled:opacity-50
+                   dark:focus-visible:ring-offset-gray-900;
+        }
+        .btn-lg      { @apply h-11 px-5; }
+        .btn-block   { @apply w-full; }
+        .btn-primary { @apply bg-red-600 text-white shadow-sm shadow-red-600/25 hover:bg-red-700 active:scale-[.99]; }
+        .btn-secondary { @apply border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700; }
+        .btn-danger  { @apply bg-red-600 text-white hover:bg-red-700; }
+        .btn-ghost   { @apply text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100; }
+
+        /* ---------- Misc ---------- */
+        .alert        { @apply rounded-lg p-3 text-sm; }
+        .alert-warning{ @apply border border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/60 dark:bg-amber-500/10 dark:text-amber-300; }
+        .chip {
+            @apply inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1
+                   font-mono text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300;
+        }
+        .divider { @apply border-t border-gray-200 dark:border-gray-800; }
+        .errorlist { @apply mb-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-500/10 dark:text-red-300; }
+        .errorlist li { @apply list-none; }
+        hr { @apply my-6 border-gray-200 dark:border-gray-800; }
+    </style>
+    {% block extra_media %}{% endblock %}
+</head>
+<body class="relative min-h-screen bg-gray-50 text-gray-900 antialiased transition-colors dark:bg-gray-950 dark:text-gray-100">
+    <div class="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-gradient-to-b from-red-50 to-transparent dark:from-red-500/[0.07]"></div>
+    <div class="mx-auto flex min-h-screen max-w-md flex-col px-4 py-10 sm:px-6 lg:py-16">
+        <header class="mb-8">
+            {% block brand %}
+                <div class="flex items-center justify-center gap-2.5">
+                    <div class="brand-mark">S</div>
+                    <div class="text-left">
+                        <div class="brand-name">Shodan</div>
+                        <div class="brand-sub">{% trans "Dojo Admin" %}</div>
+                    </div>
+                </div>
+            {% endblock %}
+        </header>
+        <main class="flex-1">
+            {% block content_wrapper %}
+                {% block content %}{% endblock %}
+            {% endblock %}
+        </main>
+        <footer class="mt-10 text-center text-xs text-gray-400 dark:text-gray-600">
+            {% block footer %}{% trans "Protected by two-factor authentication" %}{% endblock %}
+        </footer>
+    </div>
+</body>
+</html>
