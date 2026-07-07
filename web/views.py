@@ -262,8 +262,15 @@ def event_waiver(request, event_id):
         if form.is_valid():
             email = form.cleaned_data['email']
 
-            # Duplicate check
-            existing = EventWaiver.objects.filter(event_id=event.id, email=email).first()
+            # Duplicate check — keyed on participant identity (event + name + DOB),
+            # NOT email, so a parent/guardian can sign for multiple children who
+            # share one contact email (HLD U7.12).
+            existing = EventWaiver.objects.filter(
+                event_id=event.id,
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'],
+                date_of_birth=form.cleaned_data.get('date_of_birth'),
+            ).first()
             if existing:
                 messages.info(request, 'You have already signed the waiver for this event.')
                 return render(request, 'student/event_waiver.html', {

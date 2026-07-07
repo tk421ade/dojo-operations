@@ -227,7 +227,7 @@ U7.11 - On submission, if the honeypot field `email2` has a value, the submissio
 
 ## Duplicate Prevention
 
-U7.12 - If an `EventWaiver` already exists for the same email + event combination, the form shows an informational message ("You have already signed the waiver for this event") and does not allow re-submission.
+U7.12 - If an `EventWaiver` already exists for the same **participant identity** (the `event` + `first_name` + `last_name` + `date_of_birth` combination), the form shows an informational message ("You have already signed the waiver for this event") and does not allow re-submission. The contact `email` is intentionally **excluded** from the duplicate key so that a parent/guardian can sign separate waivers for multiple children who share a single contact email address. This prevents the same *person* from signing twice while still allowing one email to cover several participants.
 
 ## Admin
 
