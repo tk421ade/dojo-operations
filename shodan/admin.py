@@ -409,6 +409,7 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
     list_filter = ('is_active',)
     readonly_fields = ('token', 'feedback_url', 'created_at', 'updated_at', 'deleted_at')
     autocomplete_fields = ['session']
+    actions = ['populate_default_questions']
     inlines = [SessionFeedbackQuestionInline]
 
     fieldsets = (
@@ -424,6 +425,39 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change and obj.questions.count() == 0:
+            for q in DEFAULT_FEEDBACK_QUESTIONS:
+                SessionFeedbackQuestion.objects.create(
+                    feedback_link=obj,
+                    question_text=q['question_text'],
+                    question_type=q['question_type'],
+                    choices=q['choices'],
+                    order=q['order'],
+                    required=q['required'],
+                )
+            messages.info(request, 'Default feedback questions have been added. You can edit them below.')
+
+    @admin.action(description='Populate default questions')
+    def populate_default_questions(self, request, queryset):
+        existing_texts = set()
+        added = 0
+        for link in queryset:
+            existing = set(link.questions.values_list('question_text', flat=True))
+            for q in DEFAULT_FEEDBACK_QUESTIONS:
+                if q['question_text'] not in existing:
+                    SessionFeedbackQuestion.objects.create(
+                        feedback_link=link,
+                        question_text=q['question_text'],
+                        question_type=q['question_type'],
+                        choices=q['choices'],
+                        order=q['order'],
+                        required=q['required'],
+                    )
+                    added += 1
+        self.message_user(request, f'Added {added} default question(s).', level=messages.SUCCESS)
 
     def session__name(self, obj):
         return obj.session.name
