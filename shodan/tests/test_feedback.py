@@ -1,6 +1,8 @@
 from datetime import date, time, timedelta
 
-from django.test import TestCase, Client, override_settings
+from django.contrib import admin as django_admin
+from django.contrib.auth.models import User
+from django.test import TestCase, Client, RequestFactory, override_settings
 from django.urls import reverse
 
 from dojoconf.models import Dojo, Address, Event
@@ -8,6 +10,7 @@ from dojoconf.tests.utils import login_verified
 from shodan.models import (
     Session, SessionFeedbackLink, SessionFeedbackQuestion, SessionFeedback,
 )
+from shodan.admin import SessionFeedbackAdmin
 from web.forms import DEFAULT_FEEDBACK_QUESTIONS, build_feedback_form
 
 
@@ -288,16 +291,62 @@ class FeedbackWizardTest(TestCase):
         done_cookie = f'feedback_done_{link.token}'
         self.assertIn(done_cookie, response.cookies)
 
-    def test_honeypot_silently_succeeds_without_creating_record(self):
+    def test_honeypot_creates_bot_record(self):
         link = self._create_feedback_link()
         q = link.questions.order_by('order').first()
         response = self.client.post(
             reverse('session_feedback_step', args=[link.token, 1]),
             {f'q_{q.pk}': '4', 'email2': 'bot@spam.com'},
+            REMOTE_ADDR='203.0.113.9',
+            HTTP_USER_AGENT='SpamBot/2.0',
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('session_feedback_success', args=[link.token]))
-        self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 0)
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        self.assertTrue(feedback.is_bot)
+        self.assertEqual(feedback.honeypot_value, 'bot@spam.com')
+        self.assertEqual(feedback.ip_address, '203.0.113.9')
+        self.assertEqual(feedback.user_agent, 'SpamBot/2.0')
+        self.assertEqual(feedback.responses, {})
+
+    def test_step1_post_captures_ip_and_user_agent(self):
+        link = self._create_feedback_link()
+        q = link.questions.order_by('order').first()
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 1]),
+            {f'q_{q.pk}': '4', 'email2': ''},
+            REMOTE_ADDR='203.0.113.5',
+            HTTP_USER_AGENT='Mozilla/5.0 (Test Browser)',
+        )
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        self.assertFalse(feedback.is_bot)
+        self.assertEqual(feedback.ip_address, '203.0.113.5')
+        self.assertEqual(feedback.user_agent, 'Mozilla/5.0 (Test Browser)')
+
+    def test_subsequent_step_does_not_overwrite_ip_or_user_agent(self):
+        link = self._create_feedback_link()
+        questions = list(link.questions.order_by('order').all())
+        q1 = questions[0]
+        q2 = questions[1]
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 1]),
+            {f'q_{q1.pk}': '4', 'email2': ''},
+            REMOTE_ADDR='203.0.113.5', HTTP_USER_AGENT='BrowserA',
+        )
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        pk = feedback.pk
+        self.assertEqual(feedback.ip_address, '203.0.113.5')
+        self.assertEqual(feedback.user_agent, 'BrowserA')
+        # Step 2 from a different IP/UA — must not overwrite
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 2]),
+            {f'q_{q2.pk}': '4', 'email2': ''},
+            REMOTE_ADDR='198.51.100.7', HTTP_USER_AGENT='BrowserB',
+        )
+        feedback.refresh_from_db()
+        self.assertEqual(feedback.pk, pk)
+        self.assertEqual(feedback.ip_address, '203.0.113.5')
+        self.assertEqual(feedback.user_agent, 'BrowserA')
 
     def test_full_wizard_flow_creates_complete_feedback(self):
         link = self._create_feedback_link()
@@ -501,3 +550,32 @@ class FeedbackAdminActionTest(TestCase):
         self.assertEqual(response.status_code, 302)
         link = SessionFeedbackLink.objects.get(session=self.session)
         self.assertEqual(link.questions.count(), len(DEFAULT_FEEDBACK_QUESTIONS))
+
+    def test_admin_queryset_hides_bots_by_default(self):
+        link = SessionFeedbackLink.objects.create(
+            dojo=self.dojo, session=self.session,
+        )
+        real = SessionFeedback.objects.create(
+            dojo=self.dojo, feedback_link=link, responses={'1': 'Great'},
+        )
+        SessionFeedback.objects.create(
+            dojo=self.dojo, feedback_link=link, responses={},
+            is_bot=True, honeypot_value='x@y.com',
+        )
+
+        admin_user = User.objects.get(username='admin')
+        factory = RequestFactory()
+        ma = SessionFeedbackAdmin(SessionFeedback, django_admin.site)
+
+        # Default (no is_bot filter) → only the real submission
+        request = factory.get(reverse('admin:shodan_sessionfeedback_changelist'))
+        request.user = admin_user
+        qs = ma.get_queryset(request)
+        self.assertEqual(qs.count(), 1)
+        self.assertEqual(qs.first().pk, real.pk)
+
+        # With is_bot filter present → both visible
+        request = factory.get(reverse('admin:shodan_sessionfeedback_changelist'), {'is_bot': '1'})
+        request.user = admin_user
+        qs = ma.get_queryset(request)
+        self.assertEqual(qs.count(), 2)

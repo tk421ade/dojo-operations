@@ -1,4 +1,5 @@
 import base64
+import ipaddress
 import logging
 import urllib.parse
 from datetime import datetime, date, timedelta
@@ -374,6 +375,20 @@ def _get_client_ip(request):
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR', 'unknown')
+
+
+def _safe_client_ip(request):
+    """Return a validatable client IP, or None if it cannot be parsed."""
+    raw = _get_client_ip(request)
+    try:
+        ipaddress.ip_address(raw)
+    except (ValueError, TypeError):
+        return None
+    return raw
+
+
+def _get_user_agent(request):
+    return request.META.get('HTTP_USER_AGENT', '')
 
 
 def _send_kiosk_lock_alert(dojo, ip_address):
@@ -954,8 +969,17 @@ def session_feedback_step(request, token, step):
         FormClass = build_feedback_form([question])
         form = FormClass(request.POST)
 
-        # Honeypot check — silently succeed for bots
+        # Honeypot check — record the bot attempt, then silently succeed
         if form.data.get('email2'):
+            SessionFeedback.objects.create(
+                dojo=dojo,
+                feedback_link=feedback_link,
+                responses={},
+                ip_address=_safe_client_ip(request),
+                user_agent=_get_user_agent(request),
+                is_bot=True,
+                honeypot_value=(form.data.get('email2') or '')[:500],
+            )
             response = redirect('session_feedback_success', token=token)
             response.set_cookie(done_cookie, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
             return response
@@ -976,6 +1000,8 @@ def session_feedback_step(request, token, step):
         if not progress:
             progress = SessionFeedback.objects.create(
                 dojo=dojo, feedback_link=feedback_link, responses={},
+                ip_address=_safe_client_ip(request),
+                user_agent=_get_user_agent(request),
             )
 
         # Save the answer incrementally

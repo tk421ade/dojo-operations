@@ -477,7 +477,7 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
     question_count.short_description = 'Questions'
 
     def response_count(self, obj):
-        return obj.submissions.count()
+        return obj.submissions.filter(is_bot=False).count()
     response_count.short_description = 'Responses'
 
     def changelist_view(self, request, extra_context=None):
@@ -491,12 +491,13 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
 
 
 class SessionFeedbackAdmin(DojoFkFilterModelAdmin):
-    list_display = ('id', 'session_name', 'created_at')
+    list_display = ('id', 'session_name', 'is_bot', 'created_at')
     list_display_links = ('id',)
     search_fields = ('feedback_link__session__name',)
-    list_filter = ('created_at',)
+    list_filter = ('is_bot', 'created_at')
     date_hierarchy = 'created_at'
-    readonly_fields = ('created_at', 'updated_at', 'dojo', 'feedback_link', 'responses_display')
+    readonly_fields = ('created_at', 'updated_at', 'dojo', 'feedback_link', 'responses_display',
+                       'ip_address', 'user_agent', 'is_bot', 'honeypot_value')
 
     fieldsets = (
         (None, {
@@ -504,6 +505,11 @@ class SessionFeedbackAdmin(DojoFkFilterModelAdmin):
         }),
         ('Responses', {
             'fields': ('responses_display',),
+        }),
+        ('Abuse Detection', {
+            'fields': ('is_bot', 'ip_address', 'user_agent', 'honeypot_value'),
+            'description': 'IP and user-agent are captured once on first submission for spam/abuse detection. '
+                           'Bot submissions (honeypot triggered) are hidden from this list by default.',
         }),
         ('Raw Responses (JSON)', {
             'fields': ('responses',),
@@ -514,6 +520,12 @@ class SessionFeedbackAdmin(DojoFkFilterModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if 'is_bot' not in request.GET:
+            qs = qs.filter(is_bot=False)
+        return qs
 
     def session_name(self, obj):
         return obj.feedback_link.session.name
@@ -557,7 +569,10 @@ class SessionFeedbackAdmin(DojoFkFilterModelAdmin):
             f"""<b>Help</b>: Anonymous feedback submissions collected via public feedback URLs.
             Each record contains responses to the questions configured on the
             <a href="{reverse('admin:shodan_sessionfeedbacklink_changelist')}">feedback link</a>.
-            No student identity is stored — all submissions are fully anonymous."""
+            No student identity is stored — all submissions are anonymous.
+            IP and browser user-agent are captured once on first submission for abuse/spam detection.
+            Suspected bot submissions (honeypot triggered) are hidden by default; use the
+            <b>Is bot</b> filter to inspect them."""
         return super().changelist_view(request, extra_context)
 
 

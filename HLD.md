@@ -543,7 +543,7 @@ U11.8 - Default questions are materialized from a Python constant (`DEFAULT_FEED
 
 ### SessionFeedback
 
-U11.9 - A `SessionFeedback` stores a single anonymous submission. Fields: dojo FK, feedback_link FK (CASCADE), responses (JSONField — `{question_pk: answer_string}`), created_at, updated_at.
+U11.9 - A `SessionFeedback` stores a single anonymous submission. Fields: dojo FK, feedback_link FK (CASCADE), responses (JSONField — `{question_pk: answer_string}`), ip_address (GenericIPAddressField, nullable — client IP captured once on first submission for abuse/spam detection), user_agent (TextField, blank — browser user-agent captured once on first submission), is_bot (BooleanField, default False — True when the honeypot field was filled), honeypot_value (CharField max 500 — the captured honeypot `email2` value, populated only on bot submissions), created_at, updated_at. The IP and user-agent are captured exclusively for abuse and spam detection; no student FK, email, or name is stored, so submissions remain anonymous.
 
 U11.10 - No student FK, no email, no name — fully anonymous. There is no way to trace a submission back to an individual.
 
@@ -569,13 +569,13 @@ U11.16 - **Intro page** (`/feedback/<token>`): shows the dojo name, session name
 
 U11.17 - **Step pages** (`/feedback/<token>/step/<step>`): show one question at a time with a progress bar ("Question X of Y"). Each question is rendered according to its `question_type`. Required questions are enforced server-side. Optional questions can be left blank ("Next" proceeds without an answer). A "Back" button links to the previous step (pre-fills the saved answer).
 
-U11.18 - **Incremental saving**: on each "Next" click, the answer is saved to the `SessionFeedback.responses` JSONField. A progress cookie (`feedback_progress_<token>`) stores the `SessionFeedback` PK. It is set when the first answer is saved and used to find the existing record on subsequent steps. The record is created on the first step submission (not on page load).
+U11.18 - **Incremental saving**: on each "Next" click, the answer is saved to the `SessionFeedback.responses` JSONField. A progress cookie (`feedback_progress_<token>`) stores the `SessionFeedback` PK. It is set when the first answer is saved and used to find the existing record on subsequent steps. The record is created on the first step submission (not on page load). At creation, the client IP and browser user-agent are captured once (for abuse detection) and are never overwritten on subsequent steps.
 
 U11.19 - **Color-coded answer buttons**: Rating questions use sentiment-colored buttons: 1–2 = red (negative), 3 = gray (neutral), 4–5 = green (positive). Yes/No questions: Yes = green, No = red. Text and choice questions use the standard red accent. Labels under rating scales: "Poor" (left, red), "Excellent" (right, green).
 
 U11.20 - **Completion**: on the final step, the `feedback_done_<token>` cookie is set (1-year expiry), marking the feedback as complete. The respondent is redirected to the success page.
 
-U11.21 - A honeypot field (`email2`, same pattern as waiver form U7.10) is included on every step. If a bot fills it, the success page is rendered without creating or updating a `SessionFeedback` record.
+U11.21 - A honeypot field (`email2`, same pattern as waiver form U7.10) is included on every step. If a bot fills it, a `SessionFeedback` record is still created with `is_bot=True`, capturing the client IP, user-agent, and the honeypot value (truncated to 500 chars), while `responses` is left empty. The success page is then rendered so the bot believes it succeeded. Bot submissions are hidden from the SessionFeedback admin list by default (visible via the `is_bot` filter) and excluded from the feedback link's response count.
 
 ## URL Layout
 
@@ -679,10 +679,12 @@ Dojo (dojoconf)
         │     ├── question_text, question_type (rating/yes_no/text/choice)
         │     ├── choices (JSONField, nullable)
         │     ├── order, required
-        │     └── SessionFeedback (shodan)
-        │           ├── feedback_link FK → SessionFeedbackLink
-        │           ├── responses (JSONField — {question_pk: answer})
-        │           └── created_at (fully anonymous, no student FK)
+│     └── SessionFeedback (shodan)
+│           ├── feedback_link FK → SessionFeedbackLink
+│           ├── responses (JSONField — {question_pk: answer})
+│           ├── ip_address, user_agent (captured once for abuse detection)
+│           ├── is_bot, honeypot_value (bot/honeypot capture)
+│           └── created_at (no student FK; IP/UA for abuse detection only)
 ```
 
 # Student Portal Flow

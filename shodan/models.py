@@ -325,6 +325,18 @@ class SessionFeedback(models.Model):
     responses = models.JSONField(
         default=dict,
         help_text='Anonymous feedback responses: {question_pk: answer_string}')
+    ip_address = models.GenericIPAddressField(
+        null=True, blank=True,
+        help_text='Client IP captured once on first submission, for abuse/spam detection.')
+    user_agent = models.TextField(
+        blank=True, default='',
+        help_text='Browser user-agent captured once on first submission, for abuse/spam detection.')
+    is_bot = models.BooleanField(
+        default=False,
+        help_text='True when the honeypot field was filled (suspected bot submission).')
+    honeypot_value = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='The captured honeypot (email2) value. Populated only on bot submissions.')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
 
