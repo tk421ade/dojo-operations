@@ -11,7 +11,7 @@ from shodan.models import (
     Session, SessionFeedbackLink, SessionFeedbackQuestion, SessionFeedback,
 )
 from shodan.admin import SessionFeedbackAdmin
-from web.forms import DEFAULT_FEEDBACK_QUESTIONS, build_feedback_form
+from web.forms import DEFAULT_FEEDBACK_QUESTIONS, build_feedback_form, sync_default_questions
 
 
 class FeedbackModelTest(TestCase):
@@ -102,15 +102,7 @@ class FeedbackWizardTest(TestCase):
         link = SessionFeedbackLink.objects.create(
             dojo=self.dojo, session=self.session,
         )
-        for q in DEFAULT_FEEDBACK_QUESTIONS:
-            SessionFeedbackQuestion.objects.create(
-                feedback_link=link,
-                question_text=q['question_text'],
-                question_type=q['question_type'],
-                choices=q['choices'],
-                order=q['order'],
-                required=q['required'],
-            )
+        sync_default_questions(link)
         return link
 
     # --- Intro page tests ---
@@ -191,7 +183,9 @@ class FeedbackWizardTest(TestCase):
         link = self._create_feedback_link()
         response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
         self.assertContains(response, 'Question 1 of')
-        self.assertContains(response, '10%')
+        # Before the branching question is answered, two conditional questions are
+        # hidden, so the visible total is 9 (not 11). 1/9 = 11%.
+        self.assertContains(response, '11%')
 
     def test_step_back_button_hidden_on_step_1(self):
         link = self._create_feedback_link()
@@ -263,28 +257,20 @@ class FeedbackWizardTest(TestCase):
 
     def test_last_step_sets_done_cookie_and_redirects_to_success(self):
         link = self._create_feedback_link()
-        total = link.questions.count()
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        comments_q = link.questions.get(question_text='Any other comments or feedback?')
 
-        # Create a progress record first
+        # Create a progress record with Q8 answered "yes" so that the comments
+        # question is the last visible step (step 10 of 10).
         feedback = SessionFeedback.objects.create(
-            dojo=self.dojo, feedback_link=link, responses={},
+            dojo=self.dojo, feedback_link=link,
+            responses={str(attend_q.pk): 'yes'},
         )
         self.client.cookies['feedback_progress_' + link.token] = str(feedback.pk)
 
-        last_q = link.questions.order_by('-order').first()
-        data = {'email2': ''}
-        if last_q.question_type == 'rating':
-            data[f'q_{last_q.pk}'] = '5'
-        elif last_q.question_type == 'yes_no':
-            data[f'q_{last_q.pk}'] = 'yes'
-        elif last_q.question_type == 'text':
-            data[f'q_{last_q.pk}'] = 'Great!'
-        elif last_q.question_type == 'choice':
-            data[f'q_{last_q.pk}'] = (last_q.choices or ['x'])[0]
-
         response = self.client.post(
-            reverse('session_feedback_step', args=[link.token, total]),
-            data,
+            reverse('session_feedback_step', args=[link.token, 10]),
+            {f'q_{comments_q.pk}': 'Great!', 'email2': ''},
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('session_feedback_success', args=[link.token]))
@@ -350,35 +336,44 @@ class FeedbackWizardTest(TestCase):
 
     def test_full_wizard_flow_creates_complete_feedback(self):
         link = self._create_feedback_link()
-        questions = list(link.questions.order_by('order').all())
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        duration_q = link.questions.get(question_text='If yes, what would be the ideal duration?')
+        comments_q = link.questions.get(question_text='Any other comments or feedback?')
 
-        for i, q in enumerate(questions, 1):
-            data = {'email2': ''}
-            if q.question_type == 'rating':
-                data[f'q_{q.pk}'] = '5'
-            elif q.question_type == 'yes_no':
-                data[f'q_{q.pk}'] = 'yes'
-            elif q.question_type == 'text':
-                data[f'q_{q.pk}'] = 'Excellent session'
-            elif q.question_type == 'choice':
-                data[f'q_{q.pk}'] = '4 hours'
-
+        # Steps 1-7: rating/text questions (always visible before the branch point)
+        for order in range(1, 8):
+            q = link.questions.get(order=order)
+            data = {'email2': '', f'q_{q.pk}': '5' if q.question_type == 'rating' else 'Great'}
             response = self.client.post(
-                reverse('session_feedback_step', args=[link.token, i]),
-                data,
-            )
-            if i < len(questions):
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.url,
-                                 reverse('session_feedback_step', args=[link.token, i + 1]))
-            else:
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.url,
-                                 reverse('session_feedback_success', args=[link.token]))
+                reverse('session_feedback_step', args=[link.token, order]), data)
+            self.assertEqual(response.status_code, 302)
+
+        # Step 8: answer "yes" → reveals the ideal-duration branch
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, 8]),
+            {f'q_{attend_q.pk}': 'yes', 'email2': ''})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_step', args=[link.token, 9]))
+
+        # Step 9: ideal duration (visible because Q8="yes")
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, 9]),
+            {f'q_{duration_q.pk}': '4 hours', 'email2': ''})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_step', args=[link.token, 10]))
+
+        # Step 10: comments (last visible step → success)
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, 10]),
+            {f'q_{comments_q.pk}': 'Great session!', 'email2': ''})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_success', args=[link.token]))
 
         feedback = SessionFeedback.objects.get(feedback_link=link)
-        for q in questions:
-            self.assertIn(str(q.pk), feedback.responses)
+        self.assertEqual(feedback.responses[str(duration_q.pk)], '4 hours')
+        self.assertEqual(feedback.responses[str(comments_q.pk)], 'Great session!')
+        why_not_q = link.questions.get(question_text='Why not? (cost, travel time, etc)')
+        self.assertNotIn(str(why_not_q.pk), feedback.responses)
 
     def test_back_button_prefills_saved_answer(self):
         link = self._create_feedback_link()
@@ -396,6 +391,80 @@ class FeedbackWizardTest(TestCase):
 
         feedback = SessionFeedback.objects.get(feedback_link=link)
         self.assertEqual(feedback.responses[str(q.pk)], '5')
+
+    # --- Conditional question tests ---
+
+    def test_why_not_in_default_questions(self):
+        texts = [q['question_text'] for q in DEFAULT_FEEDBACK_QUESTIONS]
+        self.assertIn('Why not? (cost, travel time, etc)', texts)
+
+    def test_sync_default_questions_resolves_conditionals(self):
+        link = SessionFeedbackLink.objects.create(dojo=self.dojo, session=self.session)
+        sync_default_questions(link)
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        duration_q = link.questions.get(question_text='If yes, what would be the ideal duration?')
+        why_not_q = link.questions.get(question_text='Why not? (cost, travel time, etc)')
+        self.assertEqual(duration_q.conditional_parent_id, attend_q.pk)
+        self.assertEqual(duration_q.conditional_answer, 'yes')
+        self.assertEqual(why_not_q.conditional_parent_id, attend_q.pk)
+        self.assertEqual(why_not_q.conditional_answer, 'no')
+
+    def test_conditional_branch_hidden_before_parent_answered(self):
+        link = self._create_feedback_link()
+        why_not_q = link.questions.get(question_text='Why not? (cost, travel time, etc)')
+        duration_q = link.questions.get(question_text='If yes, what would be the ideal duration?')
+        comments_q = link.questions.get(question_text='Any other comments or feedback?')
+        # No Q8 answer yet — step 9 is the comments question, not a branch question
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 9]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, comments_q.question_text)
+        self.assertNotContains(response, why_not_q.question_text)
+        self.assertNotContains(response, duration_q.question_text)
+
+    def test_conditional_why_not_shown_when_attend_no(self):
+        link = self._create_feedback_link()
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        why_not_q = link.questions.get(question_text='Why not? (cost, travel time, etc)')
+        # Answer Q8 with "no" via step 8
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 8]),
+            {f'q_{attend_q.pk}': 'no', 'email2': ''})
+        # Step 9 should now show "Why not?" (visible because Q8="no")
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 9]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, why_not_q.question_text)
+
+    def test_conditional_ideal_duration_shown_when_attend_yes(self):
+        link = self._create_feedback_link()
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        duration_q = link.questions.get(question_text='If yes, what would be the ideal duration?')
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 8]),
+            {f'q_{attend_q.pk}': 'yes', 'email2': ''})
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 9]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, duration_q.question_text)
+
+    def test_stale_answer_cleared_when_branch_changes(self):
+        link = self._create_feedback_link()
+        attend_q = link.questions.get(question_text='Would you attend another session like this?')
+        duration_q = link.questions.get(question_text='If yes, what would be the ideal duration?')
+        # Answer Q8 with "yes"
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 8]),
+            {f'q_{attend_q.pk}': 'yes', 'email2': ''})
+        # Answer ideal duration
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 9]),
+            {f'q_{duration_q.pk}': '4 hours', 'email2': ''})
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        self.assertEqual(feedback.responses[str(duration_q.pk)], '4 hours')
+        # Go back and change Q8 to "no"
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 8]),
+            {f'q_{attend_q.pk}': 'no', 'email2': ''})
+        feedback.refresh_from_db()
+        self.assertNotIn(str(duration_q.pk), feedback.responses)
 
     # --- Success page ---
 

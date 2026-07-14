@@ -531,7 +531,7 @@ U11.5 - When `is_active` is False, the feedback URL shows a "feedback closed" me
 
 ### SessionFeedbackQuestion
 
-U11.6 - A `SessionFeedbackQuestion` represents a single question on the feedback form. Fields: feedback_link FK (CASCADE), question_text (CharField), question_type (choices: rating/yes_no/text/choice), choices (JSONField, nullable — list of strings for dropdown options, used only when type is "choice"), order (IntegerField), required (BooleanField, default True), created_at, updated_at.
+U11.6 - A `SessionFeedbackQuestion` represents a single question on the feedback form. Fields: feedback_link FK (CASCADE), question_text (CharField), question_type (choices: rating/yes_no/text/choice), choices (JSONField, nullable — list of strings for dropdown options, used only when type is "choice"), order (IntegerField), required (BooleanField, default True), conditional_parent (self-FK, SET_NULL, nullable — when set, this question is only shown if the parent's answer matches `conditional_answer`), conditional_answer (CharField, blank — the parent answer value that makes this question visible, e.g. "yes" or "no"), created_at, updated_at.
 
 U11.7 - `question_type` values:
 - `rating` — renders as 5 numbered radio buttons (1–5). Stored as string "1"–"5".
@@ -539,7 +539,9 @@ U11.7 - `question_type` values:
 - `text` — renders as a textarea. Stored as free-text string.
 - `choice` — renders as a dropdown select populated from `choices` JSONField. Stored as the selected string.
 
-U11.8 - Default questions are materialized from a Python constant (`DEFAULT_FEEDBACK_QUESTIONS` in `web/forms.py`) when a feedback link is generated. Staff can then CRUD questions per session via the admin inline on the `SessionFeedbackLink` admin page.
+U11.7a - **Conditional questions**: a question with a `conditional_parent` is only shown when the parent question's saved response equals `conditional_answer`. The default question set uses this for branching: after "Would you attend another session like this?" (yes/no), answering **yes** reveals "If yes, what would be the ideal duration?" (choice, optional), while answering **no** reveals "Why not? (cost, travel time, etc)" (text, optional). Questions without a `conditional_parent` are always shown. The two branch questions share the same `order` value (mutually exclusive, so only one appears per submission). A data migration (`0030_feedback_conditional_backfill`) backfills all existing feedback links that contain the "Would you attend…" question, adding the "Why not?" question and setting the conditional fields on the "ideal duration" question.
+
+U11.8 - Default questions are materialized from a Python constant (`DEFAULT_FEEDBACK_QUESTIONS` in `web/forms.py`) when a feedback link is generated, via a shared helper `sync_default_questions(link)` which also resolves conditional-parent references (expressed in the constant as `conditional_parent_text`). The same helper is used by the `generate_feedback_link` admin action, the `SessionFeedbackLinkAdmin.save_model` auto-populate path, and the "Populate default questions" admin action. Staff can then CRUD questions per session via the admin inline on the `SessionFeedbackLink` admin page (the conditional fields are hidden from the inline — they are managed automatically by the defaults).
 
 ### SessionFeedback
 
@@ -567,9 +569,9 @@ U11.15 - The feedback pages are public (no login required). The dojo is resolved
 
 U11.16 - **Intro page** (`/feedback/<token>`): shows the dojo name, session name, session date, question count, and a "Start Feedback" button linking to step 1. If the `feedback_done_<token>` cookie is present, an "already submitted" message is shown instead. If `is_active` is False, a "feedback closed" message is shown.
 
-U11.17 - **Step pages** (`/feedback/<token>/step/<step>`): show one question at a time with a progress bar ("Question X of Y"). Each question is rendered according to its `question_type`. Required questions are enforced server-side. Optional questions can be left blank ("Next" proceeds without an answer). A "Back" button links to the previous step (pre-fills the saved answer).
+U11.17 - **Step pages** (`/feedback/<token>/step/<step>`): show one question at a time with a progress bar ("Question X of Y"). The step index maps into the **visible-questions list**, computed dynamically per request — conditional questions whose condition is not met are excluded, so the total step count may change as the respondent answers branching questions. Each question is rendered according to its `question_type`. Required questions are enforced server-side. Optional questions can be left blank ("Next" proceeds without an answer). A "Back" button links to the previous step (pre-fills the saved answer).
 
-U11.18 - **Incremental saving**: on each "Next" click, the answer is saved to the `SessionFeedback.responses` JSONField. A progress cookie (`feedback_progress_<token>`) stores the `SessionFeedback` PK. It is set when the first answer is saved and used to find the existing record on subsequent steps. The record is created on the first step submission (not on page load). At creation, the client IP and browser user-agent are captured once (for abuse detection) and are never overwritten on subsequent steps.
+U11.18 - **Incremental saving**: on each "Next" click, the answer is saved to the `SessionFeedback.responses` JSONField. A progress cookie (`feedback_progress_<token>`) stores the `SessionFeedback` PK. It is set when the first answer is saved and used to find the existing record on subsequent steps. The record is created on the first step submission (not on page load). At creation, the client IP and browser user-agent are captured once (for abuse detection) and are never overwritten on subsequent steps. After each save, responses for questions that are no longer visible (e.g. when a branching answer changes from "yes" to "no") are pruned, so stale branch answers do not persist.
 
 U11.19 - **Color-coded answer buttons**: Rating questions use sentiment-colored buttons: 1–2 = red (negative), 3 = gray (neutral), 4–5 = green (positive). Yes/No questions: Yes = green, No = red. Text and choice questions use the standard red accent. Labels under rating scales: "Poor" (left, red), "Excellent" (right, green).
 
@@ -679,6 +681,8 @@ Dojo (dojoconf)
         │     ├── question_text, question_type (rating/yes_no/text/choice)
         │     ├── choices (JSONField, nullable)
         │     ├── order, required
+        │     ├── conditional_parent (self-FK, nullable), conditional_answer
+        │     │     (question shown only when parent's answer matches)
 │     └── SessionFeedback (shodan)
 │           ├── feedback_link FK → SessionFeedbackLink
 │           ├── responses (JSONField — {question_pk: answer})

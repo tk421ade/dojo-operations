@@ -3,6 +3,8 @@ from datetime import date
 from django import forms
 from django.core.validators import RegexValidator
 
+from shodan.models import SessionFeedbackQuestion
+
 
 class EmailForm(forms.Form):
     email = forms.EmailField(label='Email Address')
@@ -235,11 +237,22 @@ DEFAULT_FEEDBACK_QUESTIONS = [
         'required': True,
     },
     {
+        'question_text': 'Why not? (cost, travel time, etc)',
+        'question_type': 'text',
+        'choices': [],
+        'order': 9,
+        'required': False,
+        'conditional_parent_text': 'Would you attend another session like this?',
+        'conditional_answer': 'no',
+    },
+    {
         'question_text': 'If yes, what would be the ideal duration?',
         'question_type': 'choice',
         'choices': ['2 hours', '3 hours', '4 hours', 'Half-day', 'Full day', 'Full weekend'],
         'order': 9,
         'required': False,
+        'conditional_parent_text': 'Would you attend another session like this?',
+        'conditional_answer': 'yes',
     },
     {
         'question_text': 'Any other comments or feedback?',
@@ -257,6 +270,35 @@ RATING_CHOICES = [
     ('4', '4 — Very Good'),
     ('5', '5 — Excellent'),
 ]
+
+
+def sync_default_questions(feedback_link):
+    """Ensure all default questions exist on a link (adding missing ones) and resolve
+    conditional parent references. Returns the number of questions created."""
+    by_text = {q.question_text: q for q in feedback_link.questions.all()}
+    created = 0
+    for q_def in DEFAULT_FEEDBACK_QUESTIONS:
+        text = q_def['question_text']
+        if text not in by_text:
+            obj = SessionFeedbackQuestion.objects.create(
+                feedback_link=feedback_link,
+                question_text=text,
+                question_type=q_def['question_type'],
+                choices=q_def['choices'],
+                order=q_def['order'],
+                required=q_def['required'],
+            )
+            by_text[text] = obj
+            created += 1
+    for q_def in DEFAULT_FEEDBACK_QUESTIONS:
+        parent_text = q_def.get('conditional_parent_text')
+        if parent_text and parent_text in by_text:
+            child = by_text.get(q_def['question_text'])
+            if child:
+                child.conditional_parent = by_text[parent_text]
+                child.conditional_answer = q_def.get('conditional_answer', '')
+                child.save(update_fields=['conditional_parent', 'conditional_answer'])
+    return created
 
 
 def build_feedback_form(questions):

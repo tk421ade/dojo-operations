@@ -906,6 +906,20 @@ def _get_progress_record(request, token, feedback_link):
     return None
 
 
+def _visible_questions(all_questions, responses):
+    """Filter to questions that should be shown, given responses collected so far.
+    A conditional question is visible only when its parent's answer matches its
+    conditional_answer."""
+    visible = []
+    for q in all_questions:
+        if q.conditional_parent_id:
+            parent_answer = responses.get(str(q.conditional_parent_id))
+            if parent_answer != q.conditional_answer:
+                continue
+        visible.append(q)
+    return visible
+
+
 def session_feedback(request, token):
     """Intro page: session info + start button, or already-submitted/closed."""
     if not _is_hostname_configured(request):
@@ -950,20 +964,22 @@ def session_feedback_step(request, token, step):
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     feedback_link = get_object_or_404(SessionFeedbackLink, token=token, dojo_id=dojo.id)
     session = feedback_link.session
-    questions = list(feedback_link.questions.order_by('order').all())
-    total_steps = len(questions)
-
-    if total_steps == 0 or step < 1 or step > total_steps:
-        return redirect('session_feedback', token=token)
+    all_questions = list(feedback_link.questions.order_by('order').all())
 
     done_cookie = f'feedback_done_{token}'
     if request.COOKIES.get(done_cookie) or not feedback_link.is_active:
         return redirect('session_feedback', token=token)
 
-    question = questions[step - 1]
-    is_last = (step == total_steps)
-
     progress = _get_progress_record(request, token, feedback_link)
+    responses = (progress.responses or {}) if progress else {}
+    visible = _visible_questions(all_questions, responses)
+    total_steps = len(visible)
+
+    if total_steps == 0 or step < 1 or step > total_steps:
+        return redirect('session_feedback', token=token)
+
+    question = visible[step - 1]
+    is_last = (step == total_steps)
 
     if request.method == 'POST':
         FormClass = build_feedback_form([question])
@@ -1010,6 +1026,9 @@ def session_feedback_step(request, token, step):
             responses[str(question.pk)] = answer
         elif str(question.pk) in responses:
             del responses[str(question.pk)]
+        # Prune answers for questions no longer visible (e.g. branch changed)
+        visible_pks = {str(q.pk) for q in _visible_questions(all_questions, responses)}
+        responses = {k: v for k, v in responses.items() if k in visible_pks}
         progress.responses = responses
         progress.save(update_fields=['responses'])
 

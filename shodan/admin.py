@@ -9,7 +9,7 @@ from django.utils.html import format_html, mark_safe
 
 from dojoconf.admin import DojoFkFilterModelAdmin
 from shodan.service import autocreate_sessions_for_dojo
-from web.forms import QUESTIONNAIRE_QUESTIONS, DEFAULT_FEEDBACK_QUESTIONS
+from web.forms import QUESTIONNAIRE_QUESTIONS, DEFAULT_FEEDBACK_QUESTIONS, sync_default_questions
 from .models import *
 
 QUESTIONNAIRE_LABELS = dict(QUESTIONNAIRE_QUESTIONS)
@@ -114,15 +114,7 @@ class SessionAdmin(DojoFkFilterModelAdmin):
                 dojo=session.dojo,
                 session=session,
             )
-            for q in DEFAULT_FEEDBACK_QUESTIONS:
-                SessionFeedbackQuestion.objects.create(
-                    feedback_link=link,
-                    question_text=q['question_text'],
-                    question_type=q['question_type'],
-                    choices=q['choices'],
-                    order=q['order'],
-                    required=q['required'],
-                )
+            sync_default_questions(link)
             created += 1
             host = session.dojo.hostname or request.get_host().split(":")[0]
             url = f"https://{host}/feedback/{link.token}"
@@ -400,6 +392,7 @@ class SessionFeedbackQuestionInline(admin.TabularInline):
     model = SessionFeedbackQuestion
     extra = 0
     ordering = ('order',)
+    exclude = ('conditional_parent', 'conditional_answer')
 
 
 class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
@@ -429,34 +422,14 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if not change and obj.questions.count() == 0:
-            for q in DEFAULT_FEEDBACK_QUESTIONS:
-                SessionFeedbackQuestion.objects.create(
-                    feedback_link=obj,
-                    question_text=q['question_text'],
-                    question_type=q['question_type'],
-                    choices=q['choices'],
-                    order=q['order'],
-                    required=q['required'],
-                )
+            sync_default_questions(obj)
             messages.info(request, 'Default feedback questions have been added. You can edit them below.')
 
     @admin.action(description='Populate default questions')
     def populate_default_questions(self, request, queryset):
-        existing_texts = set()
         added = 0
         for link in queryset:
-            existing = set(link.questions.values_list('question_text', flat=True))
-            for q in DEFAULT_FEEDBACK_QUESTIONS:
-                if q['question_text'] not in existing:
-                    SessionFeedbackQuestion.objects.create(
-                        feedback_link=link,
-                        question_text=q['question_text'],
-                        question_type=q['question_type'],
-                        choices=q['choices'],
-                        order=q['order'],
-                        required=q['required'],
-                    )
-                    added += 1
+            added += sync_default_questions(link)
         self.message_user(request, f'Added {added} default question(s).', level=messages.SUCCESS)
 
     def session__name(self, obj):

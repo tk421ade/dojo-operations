@@ -312,6 +312,14 @@ class SessionFeedbackQuestion(models.Model):
         help_text='List of strings for dropdown options. Used only when question_type is "choice".')
     order = models.IntegerField(default=0)
     required = models.BooleanField(default=True)
+    conditional_parent = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='conditional_children',
+        help_text='When set, this question is only shown if the parent question '
+                  'is answered with the value in "Conditional answer".')
+    conditional_answer = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text='The parent answer value that makes this question visible (e.g. "yes" or "no").')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(null=True, blank=True)
 
