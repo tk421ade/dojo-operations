@@ -9,13 +9,13 @@ from django.contrib import messages
 from django.contrib.sessions.backends.base import SessionBase
 from django.contrib.sessions.backends.cache import SessionStore
 from django.core.files.base import ContentFile
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 from dojoconf.models import Dojo, Event
 from financial.models import Sale, MembershipProduct, Membership
-from shodan.models import Student, Session, Attendance, EventWaiver, StudentWaiver
+from shodan.models import Student, Session, Attendance, EventWaiver, StudentWaiver, SessionFeedbackLink, SessionFeedback
 from shodan.service import get_or_create_today_sessions
-from web.forms import EmailForm, EventWaiverForm, KioskPinForm
+from web.forms import EmailForm, EventWaiverForm, KioskPinForm, build_feedback_form
 
 
 def _is_hostname_configured(request):
@@ -871,4 +871,94 @@ def kiosk_attendees_session(request, session_id):
         'session': session,
         'attendees': attendees,
         'attendee_count': len(attendees),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Session Feedback (Anonymous)
+# ---------------------------------------------------------------------------
+
+FEEDBACK_COOKIE_MAXAGE = 365 * 24 * 60 * 60  # 1 year
+
+
+def session_feedback(request, token):
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    feedback_link = get_object_or_404(SessionFeedbackLink, token=token, dojo_id=dojo.id)
+    session = feedback_link.session
+    questions = feedback_link.questions.order_by('order').all()
+
+    cookie_key = f'feedback_done_{token}'
+    already_submitted = request.COOKIES.get(cookie_key) is not None
+
+    if not feedback_link.is_active:
+        return render(request, 'feedback/feedback_form.html', {
+            'dojo': dojo, 'session': session, 'feedback_closed': True,
+        })
+
+    if already_submitted and request.method != 'POST':
+        return render(request, 'feedback/feedback_form.html', {
+            'dojo': dojo, 'session': session, 'already_submitted': True,
+        })
+
+    if request.method == 'POST':
+        if already_submitted:
+            return redirect('session_feedback_success', token=token)
+
+        FormClass = build_feedback_form(questions)
+        form = FormClass(request.POST)
+
+        # Honeypot check — silently succeed for bots
+        if form.data.get('email2'):
+            response = redirect('session_feedback_success', token=token)
+            response.set_cookie(cookie_key, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
+            return response
+
+        if form.is_valid():
+            responses = {}
+            for q in questions:
+                answer = form.cleaned_data.get(f'q_{q.pk}')
+                if answer:
+                    responses[str(q.pk)] = answer
+
+            SessionFeedback.objects.create(
+                dojo=dojo,
+                feedback_link=feedback_link,
+                responses=responses,
+            )
+            response = redirect('session_feedback_success', token=token)
+            response.set_cookie(cookie_key, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
+            return response
+
+        return render(request, 'feedback/feedback_form.html', {
+            'dojo': dojo, 'session': session, 'form': form,
+            'question_fields': [(q, form[f'q_{q.pk}']) for q in questions],
+        })
+
+    FormClass = build_feedback_form(questions)
+    form = FormClass()
+
+    return render(request, 'feedback/feedback_form.html', {
+        'dojo': dojo,
+        'session': session,
+        'form': form,
+        'question_fields': [(q, form[f'q_{q.pk}']) for q in questions],
+    })
+
+
+def session_feedback_success(request, token):
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    feedback_link = SessionFeedbackLink.objects.filter(token=token, dojo_id=dojo.id).first()
+    session = feedback_link.session if feedback_link else None
+
+    return render(request, 'feedback/feedback_success.html', {
+        'dojo': dojo,
+        'session': session,
     })

@@ -27,6 +27,10 @@ migrate:
 	./venv/bin/python3 manage.py migrate
 
 
+dev: prepare migrate load_dev_fixtures
+	DJANGO_DEBUG=1 ./venv/bin/python3 manage.py runserver
+
+
 create_test_admin_user:
 	./venv/bin/python3 manage.py createsuperuser --username admin --email admin@example.com
 

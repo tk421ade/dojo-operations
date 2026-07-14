@@ -1,5 +1,6 @@
 import os
 import random
+import secrets
 from datetime import timedelta
 
 from django.conf import settings
@@ -275,3 +276,57 @@ class StudentWaiver(models.Model):
 
     def __str__(self):
         return f"[{self.id}] {self.first_name} {self.last_name} (Student Waiver)"
+
+
+class SessionFeedbackLink(models.Model):
+    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
+    session = models.OneToOneField(Session, on_delete=models.CASCADE, related_name='feedback_link')
+    token = models.CharField(max_length=64, unique=True, db_index=True,
+                             help_text='Random URL-safe token. Auto-generated on creation.')
+    is_active = models.BooleanField(default=True, help_text='When False, the feedback form is closed.')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"[{self.id}] Feedback for {self.session.name}"
+
+
+class SessionFeedbackQuestion(models.Model):
+    QUESTION_TYPES = [
+        ('rating', 'Rating (1-5)'),
+        ('yes_no', 'Yes/No'),
+        ('text', 'Open Text'),
+        ('choice', 'Dropdown Choice'),
+    ]
+    feedback_link = models.ForeignKey(SessionFeedbackLink, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.CharField(max_length=500)
+    question_type = models.CharField(max_length=10, choices=QUESTION_TYPES)
+    choices = models.JSONField(
+        default=list, blank=True,
+        help_text='List of strings for dropdown options. Used only when question_type is "choice".')
+    order = models.IntegerField(default=0)
+    required = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"[{self.id}] {self.question_text}"
+
+
+class SessionFeedback(models.Model):
+    dojo = models.ForeignKey(Dojo, on_delete=models.CASCADE)
+    feedback_link = models.ForeignKey(SessionFeedbackLink, on_delete=models.CASCADE, related_name='submissions')
+    responses = models.JSONField(
+        default=dict,
+        help_text='Anonymous feedback responses: {question_pk: answer_string}')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"[{self.id}] Anonymous feedback for {self.feedback_link.session.name}"

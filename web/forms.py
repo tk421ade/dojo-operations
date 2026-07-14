@@ -170,3 +170,137 @@ class EventWaiverForm(forms.Form):
                                    'Guardian date is required for participants under 18.')
 
         return cleaned_data
+
+
+# ---------------------------------------------------------------------------
+# Session Feedback
+# ---------------------------------------------------------------------------
+
+DEFAULT_FEEDBACK_QUESTIONS = [
+    {
+        'question_text': 'Overall, how would you rate this session?',
+        'question_type': 'rating',
+        'choices': [],
+        'order': 1,
+        'required': True,
+    },
+    {
+        'question_text': 'How much did you enjoy the session?',
+        'question_type': 'rating',
+        'choices': [],
+        'order': 2,
+        'required': True,
+    },
+    {
+        'question_text': 'How well did the session help you learn something new?',
+        'question_type': 'rating',
+        'choices': [],
+        'order': 3,
+        'required': True,
+    },
+    {
+        'question_text': 'Did this session inspire you or your student on their karate journey '
+                         '(e.g., grading, tournaments, resuming training)?',
+        'question_type': 'rating',
+        'choices': [],
+        'order': 4,
+        'required': True,
+    },
+    {
+        'question_text': 'What was one drill or topic covered that was of most benefit?',
+        'question_type': 'text',
+        'choices': [],
+        'order': 5,
+        'required': False,
+    },
+    {
+        'question_text': 'What would you have liked more time on?',
+        'question_type': 'text',
+        'choices': [],
+        'order': 6,
+        'required': False,
+    },
+    {
+        'question_text': 'What was not covered but you would have liked?',
+        'question_type': 'text',
+        'choices': [],
+        'order': 7,
+        'required': False,
+    },
+    {
+        'question_text': 'Would you attend another session like this?',
+        'question_type': 'yes_no',
+        'choices': [],
+        'order': 8,
+        'required': True,
+    },
+    {
+        'question_text': 'If yes, what would be the ideal duration?',
+        'question_type': 'choice',
+        'choices': ['2 hours', '3 hours', '4 hours', 'Half-day', 'Full day', 'Full weekend'],
+        'order': 9,
+        'required': False,
+    },
+    {
+        'question_text': 'Any other comments or feedback?',
+        'question_type': 'text',
+        'choices': [],
+        'order': 10,
+        'required': False,
+    },
+]
+
+RATING_CHOICES = [
+    ('1', '1 — Poor'),
+    ('2', '2 — Fair'),
+    ('3', '3 — Good'),
+    ('4', '4 — Very Good'),
+    ('5', '5 — Excellent'),
+]
+
+
+def build_feedback_form(questions):
+    """Build a dynamic Django Form from SessionFeedbackQuestion instances."""
+    class _FeedbackForm(forms.Form):
+        email2 = forms.CharField(
+            required=False,
+            label='',
+            widget=forms.TextInput(attrs={
+                'style': 'position:absolute;left:-9999px;top:-9999px;',
+                'tabindex': '-1',
+                'autocomplete': 'off',
+            })
+        )
+
+    for q in questions:
+        field_name = f'q_{q.pk}'
+        if q.question_type == 'rating':
+            _FeedbackForm.base_fields[field_name] = forms.ChoiceField(
+                choices=RATING_CHOICES,
+                widget=forms.RadioSelect,
+                label=q.question_text,
+                required=q.required,
+            )
+        elif q.question_type == 'yes_no':
+            _FeedbackForm.base_fields[field_name] = forms.ChoiceField(
+                choices=YES_NO_CHOICES,
+                widget=forms.RadioSelect,
+                label=q.question_text,
+                required=q.required,
+            )
+        elif q.question_type == 'text':
+            _FeedbackForm.base_fields[field_name] = forms.CharField(
+                widget=forms.Textarea(attrs={'rows': 3}),
+                label=q.question_text,
+                required=q.required,
+            )
+        elif q.question_type == 'choice':
+            choices = [(c, c) for c in (q.choices or [])]
+            _FeedbackForm.base_fields[field_name] = forms.TypedChoiceField(
+                choices=choices,
+                widget=forms.Select,
+                label=q.question_text,
+                required=q.required,
+            )
+
+    return _FeedbackForm

@@ -19,13 +19,16 @@ The application is structured as four Django apps, each representing a bounded c
 ```
 shodan/                     # Project root
   shodan/                   # Core app: Student, Session, Attendance
-    models.py               # Student, StudentDocument, Session, Attendance
-    admin.py                # Admin classes + custom actions (autosession)
-    service.py              # autocreate_sessions_for_dojo()
-    middleware.py           # Timezone, DojoPermissions, DojoConfiguration middleware
+    models.py               # Student, StudentDocument, Session, Attendance,
+                            #   EventWaiver, StudentWaiver,
+                            #   SessionFeedbackLink, SessionFeedbackQuestion, SessionFeedback
+    admin.py                # Admin classes + custom actions (autosession, generate_feedback_link)
+    service.py              # autocreate_sessions_for_dojo(), get_or_create_today_sessions()
+    middleware.py           # Timezone, DojoPermissions, DojoConfiguration middleware,
+                            #   TwoFactorEnforcementMiddleware
     logging_matrix.py      # MatrixHandler for production error alerts
     forms.py                # AdminSessionForm
-    tests/                  # test_session.py, test_attendance.py
+    tests/                  # test_session.py, test_attendance.py, test_feedback.py
     settings.py             # Django settings (DB, Matrix, logging, local storage)
     urls.py                 # Root URLconf (admin + web portal)
   dojoconf/                 # Dojo configuration app
@@ -38,9 +41,11 @@ shodan/                     # Project root
     admin.py                # Admin classes + custom action (membership auto-sales)
     service.py              # autocreate_sales_from_memberships_for_dojo()
   web/                      # Student-facing web portal
-    views.py                # Landing, student login, session picker, attendance, kiosk mode
-    urls.py                 # Student portal + kiosk routes
-    forms.py                # EmailForm, EventWaiverForm, KioskPinForm
+    views.py                # Landing, student login, session picker, attendance, kiosk mode,
+                            #   session feedback (anonymous)
+    urls.py                 # Student portal + kiosk + feedback routes
+    forms.py                # EmailForm, EventWaiverForm, KioskPinForm,
+                            #   DEFAULT_FEEDBACK_QUESTIONS, build_feedback_form()
     context_processors.py   # dojo_context — makes dojo available in all templates
   templates/                # Project-level templates
     base.html               # Base template (new.css framework)
@@ -59,6 +64,9 @@ shodan/                     # Project root
       kiosk_attendance_sessions.html
       kiosk_attendance_completed.html
       kiosk_register_success.html
+    feedback/               # Anonymous session feedback templates
+      feedback_form.html
+      feedback_success.html
     admin/                  # Custom admin change_list templates
       change_list.html      # Adds contextual help text to admin lists
       shodan/session/change_list.html     # Adds "Create Sessions Automatically" button
@@ -94,6 +102,8 @@ shodan/                     # Project root
 - `/event/<event_id>/waiver` — Public event waiver/participation form (no login required)
 - `/event/waiver/list` — Event picker when multiple events have waivers enabled
 - `/event/waiver/success` — Waiver submission confirmation page
+- `/feedback/<token>` — Public anonymous feedback form (no login required, token is unguessable random string)
+- `/feedback/<token>/success` — Feedback submission confirmation page
 
 # Navigation & Entry Points
 
@@ -501,6 +511,75 @@ U10.25 - No custom `User` model is introduced; 2FA attaches to the stock Django 
 
 U10.26 - On the first production deploy that includes 2FA, every existing staff user is forced through enrollment on their next login. Coordinate with staff beforehand so they have an authenticator app ready.
 
+# Use Case U11 - Session Feedback
+
+## Overview
+
+U11.1 - Anonymous post-session feedback collection via unguessable random URLs. After a session (typically a seminar or event-based session), staff generate a feedback link in the admin and share the URL manually (e.g., via email, QR code, social media). The URL is not linked or discoverable from any page in the application — security is through obscurity of the token.
+
+U11.2 - Feedback is collected per individual `Session`. Each session can have at most one feedback link (OneToOne).
+
+## Models
+
+### SessionFeedbackLink
+
+U11.3 - A `SessionFeedbackLink` represents a feedback-enabled session with a random access token. Fields: dojo FK, session (OneToOne FK to `Session`), token (unique, indexed, 43-char URL-safe random string via `secrets.token_urlsafe(32)`), is_active (BooleanField, default True), created_at, updated_at, deleted_at.
+
+U11.4 - The `token` is generated once on creation using `secrets.token_urlsafe(32)` and is read-only in the admin (cannot be changed).
+
+U11.5 - When `is_active` is False, the feedback URL shows a "feedback closed" message and no submissions are accepted.
+
+### SessionFeedbackQuestion
+
+U11.6 - A `SessionFeedbackQuestion` represents a single question on the feedback form. Fields: feedback_link FK (CASCADE), question_text (CharField), question_type (choices: rating/yes_no/text/choice), choices (JSONField, nullable — list of strings for dropdown options, used only when type is "choice"), order (IntegerField), required (BooleanField, default True), created_at, updated_at.
+
+U11.7 - `question_type` values:
+- `rating` — renders as 5 numbered radio buttons (1–5). Stored as string "1"–"5".
+- `yes_no` — renders as 2 radio buttons (Yes/No). Stored as "yes"/"no".
+- `text` — renders as a textarea. Stored as free-text string.
+- `choice` — renders as a dropdown select populated from `choices` JSONField. Stored as the selected string.
+
+U11.8 - Default questions are materialized from a Python constant (`DEFAULT_FEEDBACK_QUESTIONS` in `web/forms.py`) when a feedback link is generated. Staff can then CRUD questions per session via the admin inline on the `SessionFeedbackLink` admin page.
+
+### SessionFeedback
+
+U11.9 - A `SessionFeedback` stores a single anonymous submission. Fields: dojo FK, feedback_link FK (CASCADE), responses (JSONField — `{question_pk: answer_string}`), created_at, updated_at.
+
+U11.10 - No student FK, no email, no name — fully anonymous. There is no way to trace a submission back to an individual.
+
+## Admin
+
+U11.11 - `SessionAdmin` has a "Generate Feedback Link" admin action (`generate_feedback_link`). When run on selected sessions:
+- Creates a `SessionFeedbackLink` (with random token) for each selected session that doesn't already have one.
+- Copies the default questions from `DEFAULT_FEEDBACK_QUESTIONS` into `SessionFeedbackQuestion` rows.
+- Sessions that already have a feedback link are skipped (admin message displayed).
+- The generated full URLs are displayed as admin messages for easy copy-paste.
+
+U11.12 - `SessionFeedbackLinkAdmin` extends `DojoFkFilterModelAdmin`. Shows: session name, token, full feedback URL (computed with hostname), is_active toggle, question count, response count. Token is read-only. A `SessionFeedbackQuestionInline` (TabularInline) allows full CRUD of questions. Staff can toggle `is_active` to close feedback collection.
+
+U11.13 - `SessionFeedbackAdmin` extends `DojoFkFilterModelAdmin`. Fully read-only. List shows: feedback link, submission date. Detail view renders the `responses` JSONField as a formatted table (question text → answer), using the same pattern as waiver `questionnaire_display`.
+
+## Public Form
+
+U11.14 - The feedback form at `/feedback/<token>` is public (no login required). The dojo is resolved from the hostname via `DojoConfigurationMiddleware` (same as all other pages). The feedback link must belong to the resolved dojo.
+
+U11.15 - The form is dynamically constructed from `SessionFeedbackQuestion` rows. Each question is rendered according to its `question_type`. Required questions are enforced server-side.
+
+U11.16 - A honeypot field (`email2`, same pattern as waiver form U7.10) is included. If a bot fills it, the success page is rendered without creating a `SessionFeedback` record.
+
+U11.17 - On successful submission, a `SessionFeedback` record is created and a cookie `feedback_done_<token>` is set (1-year expiry). On subsequent GET requests, if the cookie is present, an informational "already submitted" message is shown instead of the form.
+
+## URL Layout
+
+U11.18 - `/feedback/<token>` — Public feedback form (GET: render form, POST: process submission).
+U11.19 - `/feedback/<token>/success` — Submission confirmation page.
+
+## Templates
+
+U11.20 - The feedback form template (`feedback/feedback_form.html`) uses TailwindCSS with dark mode support per U8 conventions. Rating questions render as numbered buttons (1–5) with labels (Poor → Excellent). The page shows the session name, date, and dojo name. Card-based layout, mobile-first, red accent.
+
+U11.21 - The success page (`feedback/feedback_success.html`) shows a thank-you message with dojo branding. No auto-redirect (the student navigates away manually).
+
 # Important Considerations
 
 M1 - The system is built with Django 5.2 and PostgreSQL. No SQLite fallback in production (SQLite code is commented out in settings).
@@ -580,6 +659,19 @@ Dojo (dojoconf)
         ├── questionnaire_responses (JSONField)
         ├── applicant_signature → local private storage
         └── guardian_signature → local private storage (nullable)
+  └── SessionFeedbackLink (shodan)
+        ├── session OneToOne → Session
+        ├── token (unique random URL-safe string)
+        ├── is_active (bool)
+        ├── SessionFeedbackQuestion (shodan)
+        │     ├── feedback_link FK → SessionFeedbackLink
+        │     ├── question_text, question_type (rating/yes_no/text/choice)
+        │     ├── choices (JSONField, nullable)
+        │     ├── order, required
+        │     └── SessionFeedback (shodan)
+        │           ├── feedback_link FK → SessionFeedbackLink
+        │           ├── responses (JSONField — {question_pk: answer})
+        │           └── created_at (fully anonymous, no student FK)
 ```
 
 # Student Portal Flow

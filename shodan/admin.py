@@ -9,7 +9,7 @@ from django.utils.html import format_html, mark_safe
 
 from dojoconf.admin import DojoFkFilterModelAdmin
 from shodan.service import autocreate_sessions_for_dojo
-from web.forms import QUESTIONNAIRE_QUESTIONS
+from web.forms import QUESTIONNAIRE_QUESTIONS, DEFAULT_FEEDBACK_QUESTIONS
 from .models import *
 
 QUESTIONNAIRE_LABELS = dict(QUESTIONNAIRE_QUESTIONS)
@@ -67,6 +67,7 @@ class SessionAdmin(DojoFkFilterModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
     list_filter = ('date',)
     date_hierarchy = "date"
+    actions = ['generate_feedback_link']
     #form = AdminSessionForm
 
     def get_queryset(self, request):
@@ -102,6 +103,41 @@ class SessionAdmin(DojoFkFilterModelAdmin):
             by using the 'Create Sessions Automatically' feature. """
 
         return super().changelist_view(request, extra_context)
+
+    @admin.action(description='Generate feedback link')
+    def generate_feedback_link(self, request, queryset):
+        created = 0
+        skipped = 0
+        urls = []
+        for session in queryset:
+            existing = SessionFeedbackLink.objects.filter(session=session).first()
+            if existing:
+                skipped += 1
+                continue
+            link = SessionFeedbackLink.objects.create(
+                dojo=session.dojo,
+                session=session,
+            )
+            for q in DEFAULT_FEEDBACK_QUESTIONS:
+                SessionFeedbackQuestion.objects.create(
+                    feedback_link=link,
+                    question_text=q['question_text'],
+                    question_type=q['question_type'],
+                    choices=q['choices'],
+                    order=q['order'],
+                    required=q['required'],
+                )
+            created += 1
+            host = session.dojo.hostname or request.get_host().split(":")[0]
+            url = f"https://{host}/feedback/{link.token}"
+            urls.append(f"{session.name}: {url}")
+
+        if created:
+            self.message_user(request, f'Generated {created} feedback link(s).', level=messages.SUCCESS)
+            for url in urls:
+                self.message_user(request, url, level=messages.INFO)
+        if skipped:
+            self.message_user(request, f'{skipped} session(s) already had a feedback link (skipped).', level=messages.WARNING)
 
     def get_urls(self):
         urls = super().get_urls()
@@ -362,4 +398,138 @@ admin.site.register(Session, SessionAdmin)
 admin.site.register(Attendance, AttendanceAdmin)
 admin.site.register(EventWaiver, EventWaiverAdmin)
 admin.site.register(StudentWaiver, StudentWaiverAdmin)
+
+
+class SessionFeedbackQuestionInline(admin.TabularInline):
+    model = SessionFeedbackQuestion
+    extra = 0
+    ordering = ('order',)
+
+
+class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
+    list_display = ('id', 'session__name', 'is_active', 'question_count', 'response_count', 'created_at')
+    list_display_links = ('id', 'session__name')
+    search_fields = ('session__name', 'token')
+    list_filter = ('is_active',)
+    readonly_fields = ('token', 'feedback_url', 'created_at', 'updated_at', 'deleted_at')
+    inlines = [SessionFeedbackQuestionInline]
+
+    fieldsets = (
+        (None, {
+            'fields': ('dojo', 'session', 'is_active'),
+        }),
+        ('Feedback URL', {
+            'fields': ('token', 'feedback_url'),
+            'description': 'Share this URL manually (email, QR code, etc.). It is not linked from any page in the application.',
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def session__name(self, obj):
+        return obj.session.name
+    session__name.short_description = 'Session'
+
+    def feedback_url(self, obj):
+        host = obj.dojo.hostname or ''
+        if host:
+            return format_html(
+                '<a href="https://{}/feedback/{}" target="_blank" rel="noopener noreferrer">https://{}/feedback/{}</a>',
+                host, obj.token, host, obj.token)
+        return f'/feedback/{obj.token}'
+    feedback_url.short_description = 'Feedback URL'
+
+    def question_count(self, obj):
+        return obj.questions.count()
+    question_count.short_description = 'Questions'
+
+    def response_count(self, obj):
+        return obj.submissions.count()
+    response_count.short_description = 'Responses'
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['documentation'] = \
+            f"""<b>Help</b>: Feedback links are generated from individual
+            <a href="{reverse('admin:shodan_session_changelist')}">sessions</a> via the
+            'Generate feedback link' admin action. Each link has an unguessable random URL.
+            Questions can be customised per session using the inline below."""
+        return super().changelist_view(request, extra_context)
+
+
+class SessionFeedbackAdmin(DojoFkFilterModelAdmin):
+    list_display = ('id', 'session_name', 'created_at')
+    list_display_links = ('id',)
+    search_fields = ('feedback_link__session__name',)
+    list_filter = ('created_at',)
+    date_hierarchy = 'created_at'
+    readonly_fields = ('created_at', 'updated_at', 'dojo', 'feedback_link', 'responses_display')
+
+    fieldsets = (
+        (None, {
+            'fields': ('dojo', 'feedback_link'),
+        }),
+        ('Responses', {
+            'fields': ('responses_display',),
+        }),
+        ('Raw Responses (JSON)', {
+            'fields': ('responses',),
+            'classes': ('collapse',),
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def session_name(self, obj):
+        return obj.feedback_link.session.name
+    session_name.short_description = 'Session'
+
+    def responses_display(self, obj):
+        if not obj or not obj.responses:
+            return '(none)'
+        questions = {q.pk: q for q in obj.feedback_link.questions.all()}
+        rows = []
+        for q_pk, answer in obj.responses.items():
+            question = questions.get(int(q_pk))
+            label = question.question_text if question else f'(deleted question {q_pk})'
+            rows.append(format_html(
+                '<tr>'
+                '<td style="padding:6px 12px 6px 0; border-bottom:1px solid #eee; max-width:400px;">{}</td>'
+                '<td style="padding:6px 0; border-bottom:1px solid #eee; font-weight:bold;">{}</td>'
+                '</tr>',
+                label, answer,
+            ))
+        return mark_safe(
+            '<table style="border-collapse:collapse; font-size:13px;">'
+            '<thead><tr>'
+            '<th style="padding:6px 12px 6px 0; border-bottom:2px solid #ddd; text-align:left;">Question</th>'
+            '<th style="padding:6px 0; border-bottom:2px solid #ddd; text-align:left;">Answer</th>'
+            '</tr></thead>'
+            '<tbody>{}</tbody></table>'
+            .format(''.join(rows))
+        )
+    responses_display.short_description = 'Responses'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['documentation'] = \
+            f"""<b>Help</b>: Anonymous feedback submissions collected via public feedback URLs.
+            Each record contains responses to the questions configured on the
+            <a href="{reverse('admin:shodan_sessionfeedbacklink_changelist')}">feedback link</a>.
+            No student identity is stored — all submissions are fully anonymous."""
+        return super().changelist_view(request, extra_context)
+
+
+admin.site.register(SessionFeedbackLink, SessionFeedbackLinkAdmin)
+admin.site.register(SessionFeedback, SessionFeedbackAdmin)
 

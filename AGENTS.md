@@ -71,6 +71,7 @@ All commands use the virtualenv at `venv/`. The Makefile wraps common operations
 | Deploy on server (when SSH'd in) | `make deploy-local` |
 | Clear expired sessions | `make clearsessions` |
 | Load prod fixtures (groups) | `make load_prod_fixtures` |
+| Spin up a fresh dev environment | `make dev` (venv + migrate + fixtures + runserver, DEBUG on) |
 | Load dev fixtures (auth + dojoconf) | `make load_dev_fixtures` |
 | Freeze requirements | `make freeze` |
 
