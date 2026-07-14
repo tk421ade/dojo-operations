@@ -72,24 +72,20 @@ class SessionAdmin(DojoFkFilterModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.order_by('date')
+        return qs.order_by('-date')
 
     def changelist_view(self, request, extra_context=None):
         """
 
-        If there are no extra filter parameters, display the most recent sessions first
+        Display future sessions first (nearest upcoming first), then past sessions
+        (most recent first).
 
-        :param request:
-        :param extra_context:
-        :return:
         """
         extra_context = extra_context or {}
 
-        # TODO there is a bug here.
-
-        qs = self.get_queryset(request)
-        future_qs = qs.filter(date__gte=date.today())
-        past_qs = qs.filter(date__lt=date.today())
+        qs = super().get_queryset(request)
+        future_qs = qs.filter(date__gte=date.today()).order_by('date')
+        past_qs = qs.filter(date__lt=date.today()).order_by('-date')
         combined_qs = list(future_qs) + list(past_qs)
         self.queryset = combined_qs
 
@@ -412,6 +408,7 @@ class SessionFeedbackLinkAdmin(DojoFkFilterModelAdmin):
     search_fields = ('session__name', 'token')
     list_filter = ('is_active',)
     readonly_fields = ('token', 'feedback_url', 'created_at', 'updated_at', 'deleted_at')
+    autocomplete_fields = ['session']
     inlines = [SessionFeedbackQuestionInline]
 
     fieldsets = (
