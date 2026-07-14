@@ -11,7 +11,10 @@
         </svg>
         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Feedback Submitted</h2>
         <p class="mt-3 text-gray-600 dark:text-gray-400">
-            Thank you for taking the time to share your thoughts{% if session %} on {{ session.name }}{% endif %}.
+            Thank you for taking the time to share your thoughts
+            {% if session %} on {{ session.name }}{% endif %}.
+        </p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Your response has been recorded anonymously.
         </p>
     </div>

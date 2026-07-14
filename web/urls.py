@@ -22,5 +22,6 @@ urlpatterns = [
     path('kiosk/attendees', views.kiosk_attendees, name='kiosk_attendees'),
     path('kiosk/attendees/session/<int:session_id>', views.kiosk_attendees_session, name='kiosk_attendees_session'),
     path('feedback/<str:token>', views.session_feedback, name='session_feedback'),
+    path('feedback/<str:token>/step/<int:step>', views.session_feedback_step, name='session_feedback_step'),
     path('feedback/<str:token>/success', views.session_feedback_success, name='session_feedback_success'),
 ]

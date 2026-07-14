@@ -559,26 +559,37 @@ U11.12 - `SessionFeedbackLinkAdmin` extends `DojoFkFilterModelAdmin`. Shows: ses
 
 U11.13 - `SessionFeedbackAdmin` extends `DojoFkFilterModelAdmin`. Fully read-only. List shows: feedback link, submission date. Detail view renders the `responses` JSONField as a formatted table (question text → answer), using the same pattern as waiver `questionnaire_display`.
 
-## Public Form
+## Public Form (Step-by-Step Wizard)
 
-U11.14 - The feedback form at `/feedback/<token>` is public (no login required). The dojo is resolved from the hostname via `DojoConfigurationMiddleware` (same as all other pages). The feedback link must belong to the resolved dojo.
+U11.14 - The feedback form is presented as a **step-by-step wizard**: one question per page with a "Next" button. Each step saves the response to the `SessionFeedback` record incrementally, so partial data is captured even if the respondent abandons midway.
 
-U11.15 - The form is dynamically constructed from `SessionFeedbackQuestion` rows. Each question is rendered according to its `question_type`. Required questions are enforced server-side.
+U11.15 - The feedback pages are public (no login required). The dojo is resolved from the hostname via `DojoConfigurationMiddleware` (same as all other pages). The feedback link must belong to the resolved dojo.
 
-U11.16 - A honeypot field (`email2`, same pattern as waiver form U7.10) is included. If a bot fills it, the success page is rendered without creating a `SessionFeedback` record.
+U11.16 - **Intro page** (`/feedback/<token>`): shows the dojo name, session name, session date, question count, and a "Start Feedback" button linking to step 1. If the `feedback_done_<token>` cookie is present, an "already submitted" message is shown instead. If `is_active` is False, a "feedback closed" message is shown.
 
-U11.17 - On successful submission, a `SessionFeedback` record is created and a cookie `feedback_done_<token>` is set (1-year expiry). On subsequent GET requests, if the cookie is present, an informational "already submitted" message is shown instead of the form.
+U11.17 - **Step pages** (`/feedback/<token>/step/<step>`): show one question at a time with a progress bar ("Question X of Y"). Each question is rendered according to its `question_type`. Required questions are enforced server-side. Optional questions can be left blank ("Next" proceeds without an answer). A "Back" button links to the previous step (pre-fills the saved answer).
+
+U11.18 - **Incremental saving**: on each "Next" click, the answer is saved to the `SessionFeedback.responses` JSONField. A progress cookie (`feedback_progress_<token>`) stores the `SessionFeedback` PK. It is set when the first answer is saved and used to find the existing record on subsequent steps. The record is created on the first step submission (not on page load).
+
+U11.19 - **Color-coded answer buttons**: Rating questions use sentiment-colored buttons: 1–2 = red (negative), 3 = gray (neutral), 4–5 = green (positive). Yes/No questions: Yes = green, No = red. Text and choice questions use the standard red accent. Labels under rating scales: "Poor" (left, red), "Excellent" (right, green).
+
+U11.20 - **Completion**: on the final step, the `feedback_done_<token>` cookie is set (1-year expiry), marking the feedback as complete. The respondent is redirected to the success page.
+
+U11.21 - A honeypot field (`email2`, same pattern as waiver form U7.10) is included on every step. If a bot fills it, the success page is rendered without creating or updating a `SessionFeedback` record.
 
 ## URL Layout
 
-U11.18 - `/feedback/<token>` — Public feedback form (GET: render form, POST: process submission).
-U11.19 - `/feedback/<token>/success` — Submission confirmation page.
+U11.22 - `/feedback/<token>` — Intro page (GET: render session info + start button / already-submitted / closed).
+U11.23 - `/feedback/<token>/step/<int:step>` — Single question step (GET: render question, POST: save answer + redirect to next step or success).
+U11.24 - `/feedback/<token>/success` — Submission confirmation page.
 
 ## Templates
 
-U11.20 - The feedback form template (`feedback/feedback_form.html`) uses TailwindCSS with dark mode support per U8 conventions. Rating questions render as numbered buttons (1–5) with labels (Poor → Excellent). The page shows the session name, date, and dojo name. Card-based layout, mobile-first, red accent.
+U11.25 - The intro page (`feedback/feedback_intro.html`) shows the dojo name, session name, session date, question count, and a "Start Feedback" button. Uses TailwindCSS with dark mode support per U8 conventions. Shows the dojo logo if available.
 
-U11.21 - The success page (`feedback/feedback_success.html`) shows a thank-you message with dojo branding. No auto-redirect (the student navigates away manually).
+U11.26 - The step page (`feedback/feedback_step.html`) shows a progress bar, the dojo name and session name (compact header), the question, color-coded answer buttons, and "Back" / "Next" (or "Submit") buttons. Mobile-first, card-based layout.
+
+U11.27 - The success page (`feedback/feedback_success.html`) shows a thank-you message with dojo branding. No auto-redirect (the student navigates away manually).
 
 # Important Considerations
 

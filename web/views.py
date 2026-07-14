@@ -875,13 +875,24 @@ def kiosk_attendees_session(request, session_id):
 
 
 # ---------------------------------------------------------------------------
-# Session Feedback (Anonymous)
+# Session Feedback (Anonymous) — Step-by-Step Wizard
 # ---------------------------------------------------------------------------
 
 FEEDBACK_COOKIE_MAXAGE = 365 * 24 * 60 * 60  # 1 year
 
 
+def _get_progress_record(request, token, feedback_link):
+    """Find the in-progress SessionFeedback for this browser, if any."""
+    progress_pk = request.COOKIES.get(f'feedback_progress_{token}')
+    if progress_pk:
+        return SessionFeedback.objects.filter(
+            pk=progress_pk, feedback_link=feedback_link,
+        ).first()
+    return None
+
+
 def session_feedback(request, token):
+    """Intro page: session info + start button, or already-submitted/closed."""
     if not _is_hostname_configured(request):
         hostname = request.get_host().split(":")[0]
         return render(request, 'bad_configuration.html', {'hostname': hostname})
@@ -889,63 +900,122 @@ def session_feedback(request, token):
     dojo = Dojo.objects.get(id=request.session['dojo_id'])
     feedback_link = get_object_or_404(SessionFeedbackLink, token=token, dojo_id=dojo.id)
     session = feedback_link.session
-    questions = feedback_link.questions.order_by('order').all()
+    question_count = feedback_link.questions.count()
 
-    cookie_key = f'feedback_done_{token}'
-    already_submitted = request.COOKIES.get(cookie_key) is not None
+    done_cookie = f'feedback_done_{token}'
+    already_submitted = request.COOKIES.get(done_cookie) is not None
 
     if not feedback_link.is_active:
-        return render(request, 'feedback/feedback_form.html', {
+        return render(request, 'feedback/feedback_intro.html', {
             'dojo': dojo, 'session': session, 'feedback_closed': True,
+            'question_count': question_count, 'token': token,
         })
 
-    if already_submitted and request.method != 'POST':
-        return render(request, 'feedback/feedback_form.html', {
+    if already_submitted:
+        return render(request, 'feedback/feedback_intro.html', {
             'dojo': dojo, 'session': session, 'already_submitted': True,
+            'question_count': question_count, 'token': token,
         })
+
+    return render(request, 'feedback/feedback_intro.html', {
+        'dojo': dojo,
+        'session': session,
+        'feedback_link': feedback_link,
+        'question_count': question_count,
+        'token': token,
+    })
+
+
+def session_feedback_step(request, token, step):
+    """One question per page with incremental save on Next."""
+    if not _is_hostname_configured(request):
+        hostname = request.get_host().split(":")[0]
+        return render(request, 'bad_configuration.html', {'hostname': hostname})
+
+    dojo = Dojo.objects.get(id=request.session['dojo_id'])
+    feedback_link = get_object_or_404(SessionFeedbackLink, token=token, dojo_id=dojo.id)
+    session = feedback_link.session
+    questions = list(feedback_link.questions.order_by('order').all())
+    total_steps = len(questions)
+
+    if total_steps == 0 or step < 1 or step > total_steps:
+        return redirect('session_feedback', token=token)
+
+    done_cookie = f'feedback_done_{token}'
+    if request.COOKIES.get(done_cookie) or not feedback_link.is_active:
+        return redirect('session_feedback', token=token)
+
+    question = questions[step - 1]
+    is_last = (step == total_steps)
+
+    progress = _get_progress_record(request, token, feedback_link)
 
     if request.method == 'POST':
-        if already_submitted:
-            return redirect('session_feedback_success', token=token)
-
-        FormClass = build_feedback_form(questions)
+        FormClass = build_feedback_form([question])
         form = FormClass(request.POST)
 
         # Honeypot check — silently succeed for bots
         if form.data.get('email2'):
             response = redirect('session_feedback_success', token=token)
-            response.set_cookie(cookie_key, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
+            response.set_cookie(done_cookie, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
             return response
 
-        if form.is_valid():
-            responses = {}
-            for q in questions:
-                answer = form.cleaned_data.get(f'q_{q.pk}')
-                if answer:
-                    responses[str(q.pk)] = answer
+        if question.required:
+            if not form.is_valid():
+                return render(request, 'feedback/feedback_step.html', {
+                    'dojo': dojo, 'session': session, 'question': question,
+                    'field': form[f'q_{question.pk}'], 'form': form,
+                    'step': step, 'total_steps': total_steps,
+                    'token': token, 'is_last': is_last,
+                })
+            answer = form.cleaned_data.get(f'q_{question.pk}', '')
+        else:
+            answer = request.POST.get(f'q_{question.pk}', '')
 
-            SessionFeedback.objects.create(
-                dojo=dojo,
-                feedback_link=feedback_link,
-                responses=responses,
+        # Find or create the progress record
+        if not progress:
+            progress = SessionFeedback.objects.create(
+                dojo=dojo, feedback_link=feedback_link, responses={},
             )
+
+        # Save the answer incrementally
+        responses = dict(progress.responses or {})
+        if answer:
+            responses[str(question.pk)] = answer
+        elif str(question.pk) in responses:
+            del responses[str(question.pk)]
+        progress.responses = responses
+        progress.save(update_fields=['responses'])
+
+        if is_last:
             response = redirect('session_feedback_success', token=token)
-            response.set_cookie(cookie_key, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
+            response.set_cookie(done_cookie, '1', max_age=FEEDBACK_COOKIE_MAXAGE)
             return response
 
-        return render(request, 'feedback/feedback_form.html', {
-            'dojo': dojo, 'session': session, 'form': form,
-            'question_fields': [(q, form[f'q_{q.pk}']) for q in questions],
-        })
+        response = redirect('session_feedback_step', token=token, step=step + 1)
+        response.set_cookie(f'feedback_progress_{token}', str(progress.pk),
+                            max_age=FEEDBACK_COOKIE_MAXAGE)
+        return response
 
-    FormClass = build_feedback_form(questions)
-    form = FormClass()
+    # GET: render the question with saved answer pre-filled
+    FormClass = build_feedback_form([question])
+    initial = {}
+    if progress:
+        existing = (progress.responses or {}).get(str(question.pk))
+        if existing:
+            initial[f'q_{question.pk}'] = existing
+    form = FormClass(initial=initial) if initial else FormClass()
 
-    return render(request, 'feedback/feedback_form.html', {
+    return render(request, 'feedback/feedback_step.html', {
         'dojo': dojo,
         'session': session,
+        'question': question,
+        'field': form[f'q_{question.pk}'],
         'form': form,
-        'question_fields': [(q, form[f'q_{q.pk}']) for q in questions],
+        'step': step,
+        'total_steps': total_steps,
+        'token': token,
+        'is_last': is_last,
     })
 
 

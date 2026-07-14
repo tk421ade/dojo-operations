@@ -1,6 +1,6 @@
 from datetime import date, time, timedelta
 
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from dojoconf.models import Dojo, Address, Event
@@ -74,7 +74,7 @@ class FeedbackModelTest(TestCase):
         self.assertIn(self.session.name, str(link))
 
 
-class FeedbackViewTest(TestCase):
+class FeedbackWizardTest(TestCase):
     fixtures = ['fixtures/auth_test_data.json', 'fixtures/dojoconf_test_data.json']
 
     def setUp(self):
@@ -82,7 +82,7 @@ class FeedbackViewTest(TestCase):
         self.dojo = Dojo.objects.first()
         self.address = Address.objects.first()
         self.event = Event.objects.create(
-            dojo=self.dojo, address=self.address, name='Seminar',
+            dojo=self.dojo, address=self.address, name='Fight Seminar',
         )
         self.session = Session.objects.create(
             dojo=self.dojo, event=self.event,
@@ -110,105 +110,44 @@ class FeedbackViewTest(TestCase):
             )
         return link
 
-    def _valid_post_data(self, link):
-        data = {'email2': ''}
-        for q in link.questions.all():
-            field_name = f'q_{q.pk}'
-            if q.question_type == 'rating':
-                data[field_name] = '4'
-            elif q.question_type == 'yes_no':
-                data[field_name] = 'yes'
-            elif q.question_type == 'text':
-                data[field_name] = 'Great session!'
-            elif q.question_type == 'choice':
-                data[field_name] = '4 hours'
-        return data
+    # --- Intro page tests ---
 
     def test_invalid_token_returns_404(self):
         response = self.client.get(reverse('session_feedback', args=['invalid-token']))
         self.assertEqual(response.status_code, 404)
 
-    def test_valid_token_renders_form(self):
+    def test_intro_page_shows_dojo_and_session_info(self):
         link = self._create_feedback_link()
         response = self.client.get(reverse('session_feedback', args=[link.token]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Session Feedback')
+        self.assertContains(response, self.dojo.name)
         self.assertContains(response, self.session.name)
+        self.assertContains(response, 'Start Feedback')
 
-    def test_form_renders_all_questions(self):
+    def test_intro_shows_question_count(self):
         link = self._create_feedback_link()
         response = self.client.get(reverse('session_feedback', args=[link.token]))
-        for q in link.questions.all():
-            self.assertContains(response, q.question_text)
+        self.assertContains(response, str(link.questions.count()))
 
-    def test_form_shows_anonymous_notice(self):
+    def test_intro_shows_anonymous_notice(self):
         link = self._create_feedback_link()
         response = self.client.get(reverse('session_feedback', args=[link.token]))
         self.assertContains(response, 'anonymous')
 
-    def test_submission_creates_feedback(self):
-        link = self._create_feedback_link()
-        data = self._valid_post_data(link)
-        response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response.url,
-            reverse('session_feedback_success', args=[link.token]),
-        )
-        self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 1)
-
-        feedback = SessionFeedback.objects.get(feedback_link=link)
-        for q in link.questions.all():
-            self.assertIn(str(q.pk), feedback.responses)
-
-    def test_submission_sets_duplicate_cookie(self):
-        link = self._create_feedback_link()
-        data = self._valid_post_data(link)
-        response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
-        )
-        cookie_key = f'feedback_done_{link.token}'
-        self.assertIn(cookie_key, response.cookies)
-
-    def test_duplicate_submission_blocked_by_cookie(self):
-        link = self._create_feedback_link()
-        data = self._valid_post_data(link)
-
-        self.client.post(reverse('session_feedback', args=[link.token]), data)
-
-        response = self.client.get(reverse('session_feedback', args=[link.token]))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Already Submitted')
-
-        response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 1)
-
-    def test_honeypot_silently_succeeds_without_creating_record(self):
-        link = self._create_feedback_link()
-        data = self._valid_post_data(link)
-        data['email2'] = 'bot@spam.com'
-        response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response.url,
-            reverse('session_feedback_success', args=[link.token]),
-        )
-        self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 0)
-
-    def test_inactive_link_shows_closed_message(self):
+    def test_intro_inactive_link_shows_closed(self):
         link = self._create_feedback_link()
         link.is_active = False
         link.save()
         response = self.client.get(reverse('session_feedback', args=[link.token]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Feedback Closed')
+
+    def test_intro_already_submitted_shows_message(self):
+        link = self._create_feedback_link()
+        self.client.cookies['feedback_done_' + link.token] = '1'
+        response = self.client.get(reverse('session_feedback', args=[link.token]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Already Submitted')
 
     def test_cross_dojo_token_returns_404(self):
         other_dojo = Dojo.objects.create(
@@ -236,14 +175,180 @@ class FeedbackViewTest(TestCase):
         response = self.client.get(reverse('session_feedback', args=[link.token]))
         self.assertEqual(response.status_code, 404)
 
-    def test_required_field_validation(self):
+    # --- Step rendering tests ---
+
+    def test_step_renders_question(self):
         link = self._create_feedback_link()
-        data = {'email2': ''}
+        first_q = link.questions.order_by('order').first()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, first_q.question_text)
+
+    def test_step_shows_progress_bar(self):
+        link = self._create_feedback_link()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertContains(response, 'Question 1 of')
+        self.assertContains(response, '10%')
+
+    def test_step_back_button_hidden_on_step_1(self):
+        link = self._create_feedback_link()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertNotContains(response, 'Back')
+
+    def test_step_back_button_shown_on_step_2(self):
+        link = self._create_feedback_link()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 2]))
+        self.assertContains(response, 'Back')
+
+    def test_step_out_of_range_redirects_to_intro(self):
+        link = self._create_feedback_link()
+        total = link.questions.count()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, total + 1]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback', args=[link.token]))
+
+    def test_step_redirects_when_already_done(self):
+        link = self._create_feedback_link()
+        self.client.cookies['feedback_done_' + link.token] = '1'
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback', args=[link.token]))
+
+    def test_step_redirects_when_inactive(self):
+        link = self._create_feedback_link()
+        link.is_active = False
+        link.save()
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertEqual(response.status_code, 302)
+
+    # --- Wizard flow tests ---
+
+    def test_step1_post_creates_progress_record_and_saves_answer(self):
+        link = self._create_feedback_link()
+        q = link.questions.order_by('order').first()
         response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
+            reverse('session_feedback_step', args=[link.token, 1]),
+            {f'q_{q.pk}': '4', 'email2': ''},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_step', args=[link.token, 2]))
+
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        self.assertEqual(feedback.responses[str(q.pk)], '4')
+
+        progress_cookie = f'feedback_progress_{link.token}'
+        self.assertIn(progress_cookie, response.cookies)
+
+    def test_required_question_validation_on_step(self):
+        link = self._create_feedback_link()
+        q = link.questions.filter(required=True).order_by('order').first()
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, q.order]),
+            {'email2': ''},
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 0)
+
+    def test_optional_question_can_be_blank(self):
+        link = self._create_feedback_link()
+        q = link.questions.filter(required=False).order_by('order').first()
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, q.order]),
+            {'email2': ''},
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_last_step_sets_done_cookie_and_redirects_to_success(self):
+        link = self._create_feedback_link()
+        total = link.questions.count()
+
+        # Create a progress record first
+        feedback = SessionFeedback.objects.create(
+            dojo=self.dojo, feedback_link=link, responses={},
+        )
+        self.client.cookies['feedback_progress_' + link.token] = str(feedback.pk)
+
+        last_q = link.questions.order_by('-order').first()
+        data = {'email2': ''}
+        if last_q.question_type == 'rating':
+            data[f'q_{last_q.pk}'] = '5'
+        elif last_q.question_type == 'yes_no':
+            data[f'q_{last_q.pk}'] = 'yes'
+        elif last_q.question_type == 'text':
+            data[f'q_{last_q.pk}'] = 'Great!'
+        elif last_q.question_type == 'choice':
+            data[f'q_{last_q.pk}'] = (last_q.choices or ['x'])[0]
+
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, total]),
+            data,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_success', args=[link.token]))
+        done_cookie = f'feedback_done_{link.token}'
+        self.assertIn(done_cookie, response.cookies)
+
+    def test_honeypot_silently_succeeds_without_creating_record(self):
+        link = self._create_feedback_link()
+        q = link.questions.order_by('order').first()
+        response = self.client.post(
+            reverse('session_feedback_step', args=[link.token, 1]),
+            {f'q_{q.pk}': '4', 'email2': 'bot@spam.com'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('session_feedback_success', args=[link.token]))
+        self.assertEqual(SessionFeedback.objects.filter(feedback_link=link).count(), 0)
+
+    def test_full_wizard_flow_creates_complete_feedback(self):
+        link = self._create_feedback_link()
+        questions = list(link.questions.order_by('order').all())
+
+        for i, q in enumerate(questions, 1):
+            data = {'email2': ''}
+            if q.question_type == 'rating':
+                data[f'q_{q.pk}'] = '5'
+            elif q.question_type == 'yes_no':
+                data[f'q_{q.pk}'] = 'yes'
+            elif q.question_type == 'text':
+                data[f'q_{q.pk}'] = 'Excellent session'
+            elif q.question_type == 'choice':
+                data[f'q_{q.pk}'] = '4 hours'
+
+            response = self.client.post(
+                reverse('session_feedback_step', args=[link.token, i]),
+                data,
+            )
+            if i < len(questions):
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.url,
+                                 reverse('session_feedback_step', args=[link.token, i + 1]))
+            else:
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.url,
+                                 reverse('session_feedback_success', args=[link.token]))
+
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        for q in questions:
+            self.assertIn(str(q.pk), feedback.responses)
+
+    def test_back_button_prefills_saved_answer(self):
+        link = self._create_feedback_link()
+        q = link.questions.order_by('order').first()
+
+        # Answer step 1
+        self.client.post(
+            reverse('session_feedback_step', args=[link.token, 1]),
+            {f'q_{q.pk}': '5', 'email2': ''},
+        )
+
+        # Go back to step 1 — should show the saved answer pre-selected
+        response = self.client.get(reverse('session_feedback_step', args=[link.token, 1]))
+        self.assertEqual(response.status_code, 200)
+
+        feedback = SessionFeedback.objects.get(feedback_link=link)
+        self.assertEqual(feedback.responses[str(q.pk)], '5')
+
+    # --- Success page ---
 
     def test_success_page_renders(self):
         link = self._create_feedback_link()
@@ -252,27 +357,6 @@ class FeedbackViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Thank You')
-
-    def test_optional_questions_can_be_blank(self):
-        link = self._create_feedback_link()
-        data = {'email2': ''}
-        for q in link.questions.all():
-            field_name = f'q_{q.pk}'
-            if q.required:
-                if q.question_type == 'rating':
-                    data[field_name] = '5'
-                elif q.question_type == 'yes_no':
-                    data[field_name] = 'yes'
-            else:
-                pass
-        response = self.client.post(
-            reverse('session_feedback', args=[link.token]), data,
-        )
-        self.assertEqual(response.status_code, 302)
-        feedback = SessionFeedback.objects.get(feedback_link=link)
-        for q in link.questions.all():
-            if q.required:
-                self.assertIn(str(q.pk), feedback.responses)
 
 
 class FeedbackFormBuilderTest(TestCase):
@@ -399,3 +483,21 @@ class FeedbackAdminActionTest(TestCase):
             reverse('admin:shodan_sessionfeedback_changelist'),
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_manual_create_auto_populates_questions(self):
+        self.admin_client.login(username='admin', password='password')
+        login_verified(self.admin_client)
+
+        response = self.admin_client.post(
+            reverse('admin:shodan_sessionfeedbacklink_add'),
+            {
+                'dojo': self.dojo.pk,
+                'session': self.session.pk,
+                'is_active': 'on',
+                'questions-TOTAL_FORMS': '0',
+                'questions-INITIAL_FORMS': '0',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        link = SessionFeedbackLink.objects.get(session=self.session)
+        self.assertEqual(link.questions.count(), len(DEFAULT_FEEDBACK_QUESTIONS))
